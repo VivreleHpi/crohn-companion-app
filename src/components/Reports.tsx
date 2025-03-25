@@ -35,6 +35,13 @@ const medicationData = [
   { day: 'Dim', adherence: 100 }
 ];
 
+// Fonction pour déterminer la couleur en fonction de la valeur d'adhérence
+const getAdherenceColor = (adherence) => {
+  if (adherence < 60) return "#ef4444";
+  if (adherence < 80) return "#f59e0b";
+  return "#34d399";
+};
+
 const Reports = () => {
   const [currentWeek, setCurrentWeek] = useState('7 - 13 Juin 2023');
   
@@ -188,12 +195,7 @@ const Reports = () => {
               <Bar 
                 dataKey="adherence" 
                 radius={[4, 4, 0, 0]}
-                fill={(data) => {
-                  const value = data.adherence;
-                  if (value < 60) return "#ef4444";
-                  if (value < 80) return "#f59e0b";
-                  return "#34d399";
-                }}
+                fill={(data) => getAdherenceColor(data.adherence)}
               />
             </BarChart>
           </ResponsiveContainer>
