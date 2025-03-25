@@ -17,5 +17,5 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 // Fonction utilitaire pour vérifier si la configuration Supabase est valide
 export const isSupabaseConfigured = () => {
-  return supabaseUrl && supabaseAnonKey && supabaseUrl !== 'https://your-supabase-url.supabase.co';
+  return supabaseUrl && supabaseAnonKey && supabaseUrl !== 'https://your-supabase-url.supabase.co' as string;
 };
