@@ -39,7 +39,17 @@ const RegisterForm = () => {
   });
 
   const onSubmit = async (data: FormValues) => {
+    console.log('Tentative d\'inscription avec:', data.email);
     await signUp(data.email, data.password);
+  };
+
+  const handleGoogleSignIn = async () => {
+    console.log('Tentative de connexion avec Google...');
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Erreur lors de la connexion avec Google:', error);
+    }
   };
 
   return (
@@ -112,10 +122,14 @@ const RegisterForm = () => {
         type="button"
         variant="outline"
         className="w-full"
-        onClick={signInWithGoogle}
+        onClick={handleGoogleSignIn}
+        disabled={true} // Temporairement désactivé
       >
-        Continuer avec Google
+        Continuer avec Google (Temporairement désactivé)
       </Button>
+      <p className="text-xs text-center text-muted-foreground">
+        La connexion avec Google nécessite une configuration supplémentaire dans Supabase
+      </p>
     </div>
   );
 };
