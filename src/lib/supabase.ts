@@ -2,30 +2,20 @@
 import { createClient } from '@supabase/supabase-js';
 import { toast } from '@/components/ui/use-toast';
 
-// Obtenez les variables d'environnement ou utilisez des valeurs par défaut temporaires
-// IMPORTANT: Remplacez ces valeurs par vos propres valeurs de Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-supabase-url.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
+// URL et clé anon de Supabase (déjà définies dans le projet)
+const supabaseUrl = 'https://lwxhputpykxnyiiwlvhj.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3eGhwdXRweWt4bnlpaXdsdmhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI5MzI0MzYsImV4cCI6MjA1ODUwODQzNn0.nY30RqG11_5F7wPYnUHcte4XAtkjEK8QutaXiKjM4LA';
 
-if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  console.warn('Les variables d\'environnement SUPABASE ne sont pas définies. Utilisation de valeurs par défaut pour le développement uniquement.');
-  
-  // Afficher un toast d'avertissement uniquement en mode développement
-  if (import.meta.env.DEV) {
-    // Ajout d'un délai pour s'assurer que l'UI est chargée avant d'afficher le toast
-    setTimeout(() => {
-      toast({
-        title: "Configuration Supabase incomplète",
-        description: "Veuillez définir VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY dans vos variables d'environnement.",
-        variant: "destructive",
-      });
-    }, 1000);
+// Configuration du client Supabase avec les options d'authentification
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: localStorage,
+    persistSession: true,
+    autoRefreshToken: true,
   }
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+});
 
 // Fonction utilitaire pour vérifier si la configuration Supabase est valide
 export const isSupabaseConfigured = () => {
-  return import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
+  return supabaseUrl && supabaseAnonKey && supabaseUrl !== 'https://your-supabase-url.supabase.co';
 };
