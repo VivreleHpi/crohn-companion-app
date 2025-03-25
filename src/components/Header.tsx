@@ -1,21 +1,30 @@
 
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Activity, Calendar, Pill, BarChart2 } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, Activity, Calendar, Pill, BarChart2, LogOut, UserCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   
   const navItems = [
-    { name: 'Dashboard', path: '/', icon: <Activity className="w-5 h-5" /> },
+    { name: 'Dashboard', path: '/dashboard', icon: <Activity className="w-5 h-5" /> },
     { name: 'Symptômes', path: '/symptoms', icon: <Calendar className="w-5 h-5" /> },
     { name: 'Selles', path: '/stool-log', icon: <BarChart2 className="w-5 h-5" /> },
     { name: 'Médicaments', path: '/medications', icon: <Pill className="w-5 h-5" /> },
   ];
   
   const toggleMenu = () => setMenuOpen(!menuOpen);
+  
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
   
   return (
     <header className="relative z-10">
@@ -47,6 +56,18 @@ const Header = () => {
                 </div>
               </Link>
             ))}
+            
+            {user && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+                className="ml-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/30"
+              >
+                <LogOut className="w-4 h-4 mr-1" />
+                <span>Déconnexion</span>
+              </Button>
+            )}
           </nav>
           
           {/* Mobile menu button */}
@@ -78,6 +99,19 @@ const Header = () => {
                   <span>{item.name}</span>
                 </Link>
               ))}
+              
+              {user && (
+                <button
+                  onClick={() => {
+                    handleSignOut();
+                    toggleMenu();
+                  }}
+                  className="px-3 py-2 rounded-lg font-medium text-sm flex items-center space-x-3 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/30"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span>Déconnexion</span>
+                </button>
+              )}
             </div>
           </nav>
         )}
