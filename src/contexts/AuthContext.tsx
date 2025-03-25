@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 
 type AuthContextType = {
@@ -23,23 +23,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Vérifier si Supabase est configuré
+    if (!isSupabaseConfigured()) {
+      setLoading(false);
+      return;
+    }
+
     // Récupérer la session lors du chargement
     const getSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('Erreur lors de la récupération de la session:', error);
-        toast({
-          title: "Erreur d'authentification",
-          description: "Impossible de récupérer votre session",
-          variant: "destructive",
-        });
-      } else {
-        setSession(data.session);
-        setUser(data.session?.user ?? null);
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Erreur lors de la récupération de la session:', error);
+          toast({
+            title: "Erreur d'authentification",
+            description: "Impossible de récupérer votre session",
+            variant: "destructive",
+          });
+        } else {
+          setSession(data.session);
+          setUser(data.session?.user ?? null);
+        }
+      } catch (err) {
+        console.error("Erreur lors de la connexion à Supabase:", err);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     getSession();
