@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Cell } from 'recharts';
 import { Calendar, ArrowLeft, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -192,11 +192,11 @@ const Reports = () => {
                 formatter={(value: number) => [`${value}%`, 'Observance']}
                 labelFormatter={(label) => `${label}`}
               />
-              <Bar 
-                dataKey="adherence" 
-                radius={[4, 4, 0, 0]}
-                fill={(data) => getAdherenceColor(data.adherence)}
-              />
+              <Bar dataKey="adherence" radius={[4, 4, 0, 0]} fill="#34d399">
+                {medicationData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={getAdherenceColor(entry.adherence)} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
