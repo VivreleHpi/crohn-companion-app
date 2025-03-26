@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Pill, BarChart2, TrendingUp, Plus, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import TrendSlider from './TrendSlider';
 
 // Placeholder data
 const today = new Date();
@@ -22,14 +23,41 @@ const medicationSchedule = [
   { id: 2, name: 'Médicament B', time: '20:00', taken: false },
 ];
 
+// Nom de l'utilisateur (à remplacer par la donnée réelle)
+const userName = "Jean";
+
+// Fonction pour enregistrer l'humeur et ajouter aux analyses
+const recordMood = (moodLevel) => {
+  // Dans une implémentation réelle, cette fonction enregistrerait l'humeur dans la base de données
+  console.log(`Humeur enregistrée: ${moodLevel}`);
+};
+
+// Fonction pour donner des conseils en fonction du type de selles
+const getStoolAdvice = (stoolType) => {
+  if (stoolType <= 2) {
+    return "Constipation: Évitez le riz blanc et les aliments pauvres en fibres. Hydratez-vous davantage.";
+  } else if (stoolType >= 6) {
+    return "Diarrhée: Privilégiez les aliments riches en amidons. Évitez les aliments gras et les produits laitiers.";
+  } else {
+    return "Selles normales: Continuez à bien vous hydrater et à maintenir une alimentation équilibrée.";
+  }
+};
+
 const Dashboard = () => {
+  const [selectedMood, setSelectedMood] = useState(null);
+  
+  const handleMoodSelection = (index) => {
+    setSelectedMood(index);
+    recordMood(index + 1);
+  };
+  
   return (
     <div className="space-y-6 pb-20">
       {/* Header card */}
       <div className="glass-card rounded-xl p-5 animate-on-load">
         <div className="space-y-2">
           <div className="text-sm font-medium text-crohn-500">{formattedDate}</div>
-          <h1 className="text-2xl font-display font-medium">Bonjour</h1>
+          <h1 className="text-2xl font-display font-medium">Bonjour {userName}</h1>
           <p className="text-muted-foreground">Comment vous sentez-vous aujourd'hui ?</p>
         </div>
         
@@ -39,9 +67,13 @@ const Dashboard = () => {
               key={feeling} 
               className={cn(
                 "flex flex-col items-center justify-center rounded-lg p-2 transition-all duration-300",
-                "border border-transparent hover:border-gray-200 dark:hover:border-gray-700",
+                "border border-transparent",
+                selectedMood === index 
+                  ? "border-crohn-500 dark:border-crohn-300" 
+                  : "hover:border-gray-200 dark:hover:border-gray-700",
                 "focus:outline-none focus:ring-2 focus:ring-crohn-500 focus:ring-opacity-50"
               )}
+              onClick={() => handleMoodSelection(index)}
             >
               <div className={cn(
                 "w-8 h-8 rounded-full flex items-center justify-center mb-2",
@@ -58,6 +90,9 @@ const Dashboard = () => {
           ))}
         </div>
       </div>
+      
+      {/* Trend Slider - Tendances récentes */}
+      <TrendSlider />
       
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-4 animate-on-load stagger-1">
@@ -125,8 +160,26 @@ const Dashboard = () => {
         )}
       </div>
       
-      {/* Medication reminders */}
+      {/* Conseils pour les selles */}
       <div className="glass-card rounded-xl p-5 animate-on-load stagger-3">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="font-display font-medium">Conseils personnalisés</h2>
+        </div>
+        
+        <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 p-4 rounded-lg">
+          <p className="text-sm">
+            {getStoolAdvice(4)}
+          </p>
+          <div className="mt-2 border-t border-blue-200 dark:border-blue-800/50 pt-2">
+            <p className="text-xs text-blue-600 dark:text-blue-400">
+              Conseils basés sur vos derniers enregistrements. Consultez votre médecin pour des recommandations spécifiques à votre cas.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Medication reminders */}
+      <div className="glass-card rounded-xl p-5 animate-on-load stagger-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-display font-medium">Médicaments d'aujourd'hui</h2>
           <Link 
@@ -173,7 +226,7 @@ const Dashboard = () => {
       </div>
       
       {/* Health trends */}
-      <div className="glass-card rounded-xl p-5 animate-on-load stagger-4">
+      <div className="glass-card rounded-xl p-5 animate-on-load stagger-5">
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-display font-medium">Tendances récentes</h2>
           <Link 
