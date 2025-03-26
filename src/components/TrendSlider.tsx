@@ -3,8 +3,6 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { 
   TrendingUp, 
-  ArrowRight, 
-  ArrowLeft, 
   BarChart2, 
   Calendar
 } from 'lucide-react';
@@ -16,8 +14,18 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 
+// Type définition pour les tendances
+interface TrendItem {
+  id: number;
+  title: string;
+  description: string;
+  icon: React.FC<{ className?: string }>;
+  color: string;
+  bgColor: string;
+}
+
 // Données fictives pour les tendances
-const trendData = [
+const trendData: TrendItem[] = [
   {
     id: 1,
     title: "Symptômes en diminution",
