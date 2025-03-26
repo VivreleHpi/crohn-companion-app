@@ -16,6 +16,8 @@ import Analytics from "./pages/Analytics";
 import MedicalReport from "./pages/MedicalReport";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import Redirect from "./pages/Redirect";
+import Profile from "./pages/Profile";
 import "./App.css";
 
 const queryClient = new QueryClient();
@@ -30,6 +32,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Introduction />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/redirect" element={<Redirect />} />
             
             {/* Routes protégées nécessitant une authentification */}
             <Route element={<ProtectedRoute />}>
@@ -39,6 +42,7 @@ const App = () => (
               <Route path="/medications" element={<Medications />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/medical-report" element={<MedicalReport />} />
+              <Route path="/profile" element={<Profile />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />

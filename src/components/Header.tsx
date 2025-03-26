@@ -58,15 +58,32 @@ const Header = () => {
             ))}
             
             {user && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSignOut}
-                className="ml-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/30"
-              >
-                <LogOut className="w-4 h-4 mr-1" />
-                <span>Déconnexion</span>
-              </Button>
+              <>
+                <Link
+                  to="/profile"
+                  className={cn(
+                    "px-3 py-2 rounded-lg font-medium text-sm transition-all duration-300",
+                    location.pathname === "/profile" 
+                      ? "bg-crohn-100 text-crohn-700 dark:bg-crohn-900/30 dark:text-crohn-300" 
+                      : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/30"
+                  )}
+                >
+                  <div className="flex items-center space-x-2">
+                    <UserCircle className="w-5 h-5" />
+                    <span>Profil</span>
+                  </div>
+                </Link>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSignOut}
+                  className="ml-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/30"
+                >
+                  <LogOut className="w-4 h-4 mr-1" />
+                  <span>Déconnexion</span>
+                </Button>
+              </>
             )}
           </nav>
           
@@ -101,16 +118,32 @@ const Header = () => {
               ))}
               
               {user && (
-                <button
-                  onClick={() => {
-                    handleSignOut();
-                    toggleMenu();
-                  }}
-                  className="px-3 py-2 rounded-lg font-medium text-sm flex items-center space-x-3 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/30"
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span>Déconnexion</span>
-                </button>
+                <>
+                  <Link
+                    to="/profile"
+                    onClick={toggleMenu}
+                    className={cn(
+                      "px-3 py-2 rounded-lg font-medium text-sm flex items-center space-x-3 transition-all duration-300",
+                      location.pathname === "/profile" 
+                        ? "bg-crohn-100 text-crohn-700 dark:bg-crohn-900/30 dark:text-crohn-300" 
+                        : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/30"
+                    )}
+                  >
+                    <UserCircle className="w-5 h-5" />
+                    <span>Profil</span>
+                  </Link>
+                  
+                  <button
+                    onClick={() => {
+                      handleSignOut();
+                      toggleMenu();
+                    }}
+                    className="px-3 py-2 rounded-lg font-medium text-sm flex items-center space-x-3 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/30"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    <span>Déconnexion</span>
+                  </button>
+                </>
               )}
             </div>
           </nav>
