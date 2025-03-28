@@ -104,13 +104,9 @@ const LoginForm = () => {
         variant="outline"
         className="w-full"
         onClick={handleGoogleSignIn}
-        disabled={true} // Temporairement désactivé
       >
-        Continuer avec Google (Temporairement désactivé)
+        Continuer avec Google
       </Button>
-      <p className="text-xs text-center text-muted-foreground">
-        La connexion avec Google nécessite une configuration supplémentaire dans Supabase
-      </p>
     </div>
   );
 };
