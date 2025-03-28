@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
@@ -106,10 +105,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { error, data } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // Assurez-vous que l'URL de redirection est correcte
-          redirectTo: `${window.location.origin}/redirect`,
+          redirectTo: 'http://localhost:3000/redirect',
           queryParams: {
-            // Ajoutez des paramètres supplémentaires si nécessaire pour Google
             access_type: 'offline',
             prompt: 'consent',
           },
