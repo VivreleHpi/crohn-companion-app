@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
@@ -23,7 +22,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Vérifier si Supabase est configuré
     if (!isSupabaseConfigured()) {
       console.log('Supabase n\'est pas configuré correctement');
       setLoading(false);
@@ -32,7 +30,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     console.log('Initialisation de l\'authentification Supabase...');
 
-    // Récupérer la session lors du chargement
     const getSession = async () => {
       try {
         console.log('Récupération de la session...');
@@ -57,7 +54,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    // Écouter les changements d'état d'authentification
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log('Événement d\'authentification:', event);
@@ -104,14 +100,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Tentative de connexion avec Google...');
       
-      // Utiliser l'URL de l'application déployée comme base pour la redirection
-      // Si en développement, utiliser window.location.origin, sinon utiliser l'URL Vercel
-      const isProduction = window.location.hostname !== 'localhost';
-      const baseUrl = isProduction 
-        ? 'https://crohn-companion-app-git-main-vivre-hpis-projects.vercel.app'
-        : window.location.origin;
-      
-      const redirectUrl = `${baseUrl}/redirect`;
+      const redirectUrl = 'https://crohn-companion-app-git-main-vivre-hpis-projects.vercel.app/redirect';
       console.log('URL de redirection configurée:', redirectUrl);
       
       const { error, data } = await supabase.auth.signInWithOAuth({
