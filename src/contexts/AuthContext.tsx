@@ -104,8 +104,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Tentative de connexion avec Google...');
       
-      // Utiliser l'URL complète actuelle comme base pour la redirection
-      const redirectUrl = `${window.location.origin}/redirect`;
+      // Utiliser l'URL de l'application déployée comme base pour la redirection
+      // Si en développement, utiliser window.location.origin, sinon utiliser l'URL Vercel
+      const isProduction = window.location.hostname !== 'localhost';
+      const baseUrl = isProduction 
+        ? 'https://crohn-companion-app-git-main-vivre-hpis-projects.vercel.app'
+        : window.location.origin;
+      
+      const redirectUrl = `${baseUrl}/redirect`;
       console.log('URL de redirection configurée:', redirectUrl);
       
       const { error, data } = await supabase.auth.signInWithOAuth({
