@@ -1,11 +1,11 @@
-
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Frown, Angry, Meh, Smile, Heart } from 'lucide-react';
+import { Frown, Angry, Meh, Smile, Heart, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface MoodTrackerProps {
   userName: string;
+  userProfileLoading?: boolean;
 }
 
 // Fonction pour enregistrer l'humeur et ajouter aux analyses
@@ -56,7 +56,7 @@ const getMoodAdvice = (moodLevel: number): { advice: string; color: string; icon
   }
 };
 
-const MoodTracker: React.FC<MoodTrackerProps> = ({ userName }) => {
+const MoodTracker: React.FC<MoodTrackerProps> = ({ userName, userProfileLoading }) => {
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
   const { toast } = useToast();
   
@@ -84,7 +84,15 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ userName }) => {
     <div className="glass-card rounded-xl p-5 animate-on-load">
       <div className="space-y-2">
         <div className="text-sm font-medium text-crohn-500">{formattedDate}</div>
-        <h1 className="text-2xl font-display font-medium">Bonjour {userName}</h1>
+        <h1 className="text-2xl font-display font-medium">
+          {userProfileLoading ? (
+            <div className="flex items-center">
+              Bonjour <Loader2 className="w-5 h-5 ml-2 animate-spin text-crohn-500" />
+            </div>
+          ) : (
+            <>Bonjour {userName}</>
+          )}
+        </h1>
         
         {selectedMood === null ? (
           <>

@@ -4,11 +4,11 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
+import { useProfile } from '@/hooks/useProfile';
 import {
   Form,
   FormControl,
@@ -21,91 +21,53 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, UserCircle } from 'lucide-react';
 
 const profileSchema = z.object({
-  fullName: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères' }),
+  full_name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères' }),
   email: z.string().email({ message: 'Email invalide' }).optional(),
-  phoneNumber: z.string().optional(),
-  medicalInfo: z.string().optional(),
+  phone_number: z.string().optional(),
+  medical_info: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 const ProfileForm = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const { profile, loading, updateProfile } = useProfile();
+  const { toast } = useToast();
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      fullName: '',
+      full_name: '',
       email: user?.email || '',
-      phoneNumber: '',
-      medicalInfo: '',
+      phone_number: '',
+      medical_info: '',
     },
   });
 
   useEffect(() => {
-    const loadUserProfile = async () => {
-      if (!user) return;
-      
-      setLoading(true);
-      try {
-        // Dans un cas réel, vous auriez une table profiles dans Supabase
-        // Pour l'instant, on utilise juste l'email de l'utilisateur
-        form.setValue('email', user.email || '');
-        
-        // Ici, vous feriez une requête à votre table profiles
-        // const { data, error } = await supabase
-        //   .from('profiles')
-        //   .select('*')
-        //   .eq('id', user.id)
-        //   .single();
-        
-        // if (data) {
-        //   form.setValue('fullName', data.full_name);
-        //   form.setValue('phoneNumber', data.phone_number);
-        //   form.setValue('medicalInfo', data.medical_info);
-        // }
-      } catch (error) {
-        console.error('Erreur lors du chargement du profil:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUserProfile();
-  }, [user, form]);
+    if (profile) {
+      form.setValue('full_name', profile.full_name || '');
+      form.setValue('email', profile.email || user?.email || '');
+      form.setValue('phone_number', profile.phone_number || '');
+      form.setValue('medical_info', profile.medical_info || '');
+    }
+  }, [profile, user, form]);
 
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) return;
     
-    setLoading(true);
-    try {
-      // Dans un cas réel, vous mettriez à jour la table profiles
-      // const { error } = await supabase
-      //   .from('profiles')
-      //   .upsert({
-      //     id: user.id,
-      //     full_name: data.fullName,
-      //     phone_number: data.phoneNumber,
-      //     medical_info: data.medicalInfo,
-      //     updated_at: new Date(),
-      //   });
-      
-      // if (error) throw error;
-      
+    const success = await updateProfile({
+      full_name: data.full_name,
+      email: data.email,
+      phone_number: data.phone_number,
+      medical_info: data.medical_info,
+    });
+
+    if (success) {
       toast({
         title: "Profil mis à jour",
         description: "Vos informations ont été enregistrées avec succès.",
       });
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour du profil:', error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de mettre à jour votre profil. Veuillez réessayer.",
-      });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -128,7 +90,7 @@ const ProfileForm = () => {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="fullName"
+                name="full_name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nom complet</FormLabel>
@@ -156,7 +118,7 @@ const ProfileForm = () => {
               
               <FormField
                 control={form.control}
-                name="phoneNumber"
+                name="phone_number"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Numéro de téléphone</FormLabel>
@@ -170,7 +132,7 @@ const ProfileForm = () => {
               
               <FormField
                 control={form.control}
-                name="medicalInfo"
+                name="medical_info"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Informations médicales importantes</FormLabel>

@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useProfile } from '@/hooks/useProfile';
 
 // Type définitions
 export interface Symptom {
@@ -16,9 +17,8 @@ export interface Medication {
   taken: boolean;
 }
 
-// Données de démonstration
-export const dashboardData = {
-  userName: "Jean",
+// Données de démonstration pour les symptômes et médicaments
+const demoData = {
   stoolType: 4,
   recentSymptoms: [
     { id: 1, name: 'Douleur abdominale', severity: 2, time: '09:30' },
@@ -32,6 +32,12 @@ export const dashboardData = {
 
 // Hook customisé pour obtenir les données du dashboard
 export const useDashboardData = () => {
-  // Dans une implémentation réelle, nous récupérerions les données depuis une API
-  return dashboardData;
+  const { profile, loading } = useProfile();
+  
+  // Dans une implémentation réelle, nous récupérerions les symptômes et médicaments depuis une API
+  return {
+    userName: profile?.full_name || 'Utilisateur',
+    userProfileLoading: loading,
+    ...demoData
+  };
 };

@@ -11,12 +11,12 @@ import { useDashboardData } from './dashboard/DashboardData';
 
 const Dashboard = () => {
   // Récupération des données
-  const { userName, stoolType, recentSymptoms, medicationSchedule } = useDashboardData();
+  const { userName, userProfileLoading, stoolType, recentSymptoms, medicationSchedule } = useDashboardData();
   
   return (
     <div className="space-y-6 pb-20">
       {/* En-tête et suivi de l'humeur */}
-      <MoodTracker userName={userName} />
+      <MoodTracker userName={userName} userProfileLoading={userProfileLoading} />
       
       {/* Trend Slider - Tendances récentes */}
       <TrendSlider />
