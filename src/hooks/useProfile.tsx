@@ -3,14 +3,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
+import { Database } from '@/integrations/supabase/types';
 
-type Profile = {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-  phone_number: string | null;
-  medical_info: string | null;
-};
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 export const useProfile = () => {
   const { user } = useAuth();
