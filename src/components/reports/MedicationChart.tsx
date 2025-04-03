@@ -1,29 +1,29 @@
 
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { cn } from '@/lib/utils';
-
-// Type definitions
-interface MedicationDataItem {
-  day: string;
-  adherence: number;
-}
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { MedicationDataItem } from '@/hooks/useReportsData'; 
 
 interface MedicationChartProps {
   data: MedicationDataItem[];
 }
 
-// Fonction pour déterminer la couleur en fonction de la valeur d'adhérence
-const getAdherenceColor = (adherence: number) => {
-  if (adherence < 60) return "#ef4444";
-  if (adherence < 80) return "#f59e0b";
-  return "#34d399";
-};
-
 const MedicationChart: React.FC<MedicationChartProps> = ({ data }) => {
+  // Calculer les statistiques
+  const totalScheduled = data.reduce((sum, item) => sum + item.scheduled, 0);
+  const totalTaken = data.reduce((sum, item) => sum + item.taken, 0);
+  const adherenceRate = totalScheduled > 0 ? Math.round((totalTaken / totalScheduled) * 100) : 0;
+  
+  // Déterminer la classe de couleur selon le taux d'adhérence
+  const getAdherenceColorClass = (rate: number) => {
+    if (rate >= 90) return "text-health-green";
+    if (rate >= 75) return "text-health-yellow";
+    if (rate >= 50) return "text-health-orange";
+    return "text-health-red";
+  };
+
   return (
     <div className="glass-card rounded-xl p-5 animate-on-load stagger-3">
-      <h2 className="font-display font-medium mb-4">Observance médicamenteuse</h2>
+      <h2 className="font-display font-medium mb-4">Médicaments</h2>
       
       <div className="bg-white/50 dark:bg-gray-800/20 rounded-lg p-4 h-64">
         <ResponsiveContainer width="100%" height="100%">
@@ -33,7 +33,7 @@ const MedicationChart: React.FC<MedicationChartProps> = ({ data }) => {
           >
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
             <XAxis dataKey="day" axisLine={false} tickLine={false} />
-            <YAxis domain={[0, 100]} axisLine={false} tickLine={false} />
+            <YAxis axisLine={false} tickLine={false} />
             <Tooltip
               contentStyle={{
                 backgroundColor: "rgba(255, 255, 255, 0.9)",
@@ -41,34 +41,35 @@ const MedicationChart: React.FC<MedicationChartProps> = ({ data }) => {
                 borderRadius: "8px",
                 boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
               }}
-              formatter={(value: number) => [`${value}%`, 'Observance']}
+              formatter={(value: number, name: string) => [
+                `${value}`, 
+                name === 'scheduled' ? 'Prévus' : 'Pris'
+              ]}
               labelFormatter={(label) => `${label}`}
             />
-            <Bar dataKey="adherence" radius={[4, 4, 0, 0]} fill="#34d399">
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={getAdherenceColor(entry.adherence)} />
-              ))}
-            </Bar>
+            <Legend />
+            <Bar dataKey="scheduled" name="Prévus" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="taken" name="Pris" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
       
       <div className="mt-4 flex items-center justify-between px-2">
         <div className="text-center">
-          <p className="text-2xl font-medium text-health-green">89%</p>
-          <p className="text-xs text-muted-foreground">Observance moyenne</p>
+          <p className="text-2xl font-medium">{totalScheduled}</p>
+          <p className="text-xs text-muted-foreground">Doses prévues</p>
         </div>
         
-        <div className="text-center flex items-center space-x-2">
-          <div className={cn(
-            "w-3 h-3 rounded-full",
-            data.every(d => d.adherence >= 80) ? "bg-health-green" : "bg-health-orange"
-          )}></div>
-          <p className="text-sm font-medium">
-            {data.every(d => d.adherence >= 80) 
-              ? "Excellente observance" 
-              : "Observance à améliorer"}
+        <div className="text-center">
+          <p className="text-2xl font-medium">{totalTaken}</p>
+          <p className="text-xs text-muted-foreground">Doses prises</p>
+        </div>
+        
+        <div className="text-center">
+          <p className={`text-2xl font-medium ${getAdherenceColorClass(adherenceRate)}`}>
+            {adherenceRate}%
           </p>
+          <p className="text-xs text-muted-foreground">Taux d'adhérence</p>
         </div>
       </div>
     </div>

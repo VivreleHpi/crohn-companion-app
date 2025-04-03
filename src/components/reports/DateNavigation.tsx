@@ -4,12 +4,17 @@ import { Calendar, ArrowLeft, ArrowRight } from 'lucide-react';
 
 interface DateNavigationProps {
   currentWeek: string;
+  onPrevious: () => void;
+  onNext: () => void;
 }
 
-const DateNavigation: React.FC<DateNavigationProps> = ({ currentWeek }) => {
+const DateNavigation: React.FC<DateNavigationProps> = ({ currentWeek, onPrevious, onNext }) => {
   return (
     <div className="mt-4 flex items-center justify-between">
-      <button className="text-crohn-600 dark:text-crohn-300 hover:bg-crohn-50 dark:hover:bg-crohn-900/10 rounded-lg p-2 transition-all duration-300">
+      <button 
+        onClick={onPrevious} 
+        className="text-crohn-600 dark:text-crohn-300 hover:bg-crohn-50 dark:hover:bg-crohn-900/10 rounded-lg p-2 transition-all duration-300"
+      >
         <ArrowLeft className="w-5 h-5" />
       </button>
       
@@ -20,7 +25,10 @@ const DateNavigation: React.FC<DateNavigationProps> = ({ currentWeek }) => {
         <span className="font-medium">{currentWeek}</span>
       </div>
       
-      <button className="text-crohn-600 dark:text-crohn-300 hover:bg-crohn-50 dark:hover:bg-crohn-900/10 rounded-lg p-2 transition-all duration-300">
+      <button 
+        onClick={onNext}
+        className="text-crohn-600 dark:text-crohn-300 hover:bg-crohn-50 dark:hover:bg-crohn-900/10 rounded-lg p-2 transition-all duration-300"
+      >
         <ArrowRight className="w-5 h-5" />
       </button>
     </div>
