@@ -83,6 +83,39 @@ export const useSupabaseData = <T>(
     };
 
     fetchData();
+
+    // Set up realtime subscription
+    const channel = supabase
+      .channel(`public:${tableName}`)
+      .on('postgres_changes', {
+        event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+        schema: 'public',
+        table: tableName,
+        filter: user.id ? `user_id=eq.${user.id}` : undefined
+      }, (payload) => {
+        console.log('Change received:', payload);
+        
+        // Handle the different event types
+        if (payload.eventType === 'INSERT') {
+          setData((currentData) => [...currentData, payload.new as T]);
+        } else if (payload.eventType === 'UPDATE') {
+          setData((currentData) => 
+            currentData.map((item: any) => 
+              item.id === payload.new.id ? payload.new as T : item
+            )
+          );
+        } else if (payload.eventType === 'DELETE') {
+          setData((currentData) => 
+            currentData.filter((item: any) => item.id !== payload.old.id)
+          );
+        }
+      })
+      .subscribe();
+
+    // Cleanup subscription when component unmounts
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [tableName, options, user, toast]);
 
   return { data, loading, error };
