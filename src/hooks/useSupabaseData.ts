@@ -8,6 +8,9 @@ import { Database } from '@/integrations/supabase/types';
 // Type for valid table names
 type TableName = keyof Database['public']['Tables'];
 
+// Generic type for any table row
+type AnyTableRow = Database['public']['Tables'][TableName]['Row'];
+
 // Generic hook for fetching data from Supabase
 export const useSupabaseData = <T>(
   tableName: TableName,
@@ -37,7 +40,6 @@ export const useSupabaseData = <T>(
         setLoading(true);
         
         // Build the query with type safety
-        // @ts-ignore - We're using a valid table name but TypeScript can't infer it perfectly
         let query = supabase
           .from(tableName)
           .select(options?.select || '*');
@@ -69,11 +71,11 @@ export const useSupabaseData = <T>(
         
         setData(result as T[]);
       } catch (err: any) {
-        console.error(`Erreur lors de la récupération des données de ${tableName}:`, err);
+        console.error(`Error retrieving data from ${tableName}:`, err);
         setError(err);
         toast({
-          title: "Erreur de chargement",
-          description: `Impossible de récupérer les données de ${tableName}`,
+          title: "Loading error",
+          description: `Unable to retrieve data from ${tableName}`,
           variant: "destructive",
         });
       } finally {
@@ -93,15 +95,16 @@ export const addData = async <T extends Record<string, any>>(
   data: T & { user_id: string }
 ): Promise<{ data: any; error: any }> => {
   try {
-    // @ts-ignore - We're using a valid table name but TypeScript can't infer it perfectly
     const { data: result, error } = await supabase
       .from(tableName)
-      .insert(data)
+      // Using any here because TypeScript can't correctly infer the types
+      // based on the dynamic tableName parameter
+      .insert(data as any)
       .select();
     
     return { data: result, error };
   } catch (error) {
-    console.error(`Erreur lors de l'ajout de données à ${tableName}:`, error);
+    console.error(`Error adding data to ${tableName}:`, error);
     return { data: null, error };
   }
 };
@@ -113,16 +116,17 @@ export const updateData = async <T extends Record<string, any>>(
   data: Partial<T>
 ): Promise<{ data: any; error: any }> => {
   try {
-    // @ts-ignore - We're using a valid table name but TypeScript can't infer it perfectly
     const { data: result, error } = await supabase
       .from(tableName)
-      .update(data)
+      // Using any here because TypeScript can't correctly infer the types
+      // based on the dynamic tableName parameter
+      .update(data as any)
       .eq('id', id)
       .select();
     
     return { data: result, error };
   } catch (error) {
-    console.error(`Erreur lors de la mise à jour de données dans ${tableName}:`, error);
+    console.error(`Error updating data in ${tableName}:`, error);
     return { data: null, error };
   }
 };
@@ -133,7 +137,6 @@ export const deleteData = async (
   id: string
 ): Promise<{ error: any }> => {
   try {
-    // @ts-ignore - We're using a valid table name but TypeScript can't infer it perfectly
     const { error } = await supabase
       .from(tableName)
       .delete()
@@ -141,7 +144,7 @@ export const deleteData = async (
     
     return { error };
   } catch (error) {
-    console.error(`Erreur lors de la suppression de données de ${tableName}:`, error);
+    console.error(`Error deleting data from ${tableName}:`, error);
     return { error };
   }
 };
