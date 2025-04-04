@@ -36,31 +36,31 @@ export const useSupabaseData = <T>(
       try {
         setLoading(true);
         
-        // Build the query using the valid table name
-        const query = supabase
+        // Build the query using the valid table name and type assertion to avoid deep type instantiation
+        let query = supabase
           .from(tableName)
-          .select(options?.select || '*');
+          .select(options?.select || '*') as any;
         
         // Filter by user by default
         if (user.id) {
-          query.eq('user_id', user.id);
+          query = query.eq('user_id', user.id);
         }
         
         // Add other filters if needed
         if (options?.column && options?.value !== undefined) {
-          query.eq(options.column, options.value);
+          query = query.eq(options.column, options.value);
         }
         
         // Add ordering if specified
         if (options?.orderBy) {
-          query.order(options.orderBy.column, { 
+          query = query.order(options.orderBy.column, { 
             ascending: options.orderBy.ascending 
           });
         }
         
         // Add limit if specified
         if (options?.limit) {
-          query.limit(options.limit);
+          query = query.limit(options.limit);
         }
         
         // Execute the query
