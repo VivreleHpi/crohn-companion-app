@@ -8,9 +8,6 @@ import { Database } from '@/integrations/supabase/types';
 // Type for valid table names
 type TableName = keyof Database['public']['Tables'];
 
-// Generic type for any table row
-type AnyTableRow = Database['public']['Tables'][TableName]['Row'];
-
 // Generic hook for fetching data from Supabase
 export const useSupabaseData = <T>(
   tableName: TableName,
@@ -39,29 +36,32 @@ export const useSupabaseData = <T>(
       try {
         setLoading(true);
         
-        // Build the query with type safety
-        let query = supabase
-          .from(tableName)
+        // Build the query
+        // Using type assertion to avoid excessive type instantiation
+        const query = supabase
+          .from(tableName as string)
           .select(options?.select || '*');
         
         // Filter by user by default
-        query = query.eq('user_id', user.id);
+        if (user.id) {
+          query.eq('user_id', user.id);
+        }
         
         // Add other filters if needed
         if (options?.column && options?.value !== undefined) {
-          query = query.eq(options.column, options.value);
+          query.eq(options.column, options.value);
         }
         
         // Add ordering if specified
         if (options?.orderBy) {
-          query = query.order(options.orderBy.column, { 
+          query.order(options.orderBy.column, { 
             ascending: options.orderBy.ascending 
           });
         }
         
         // Add limit if specified
         if (options?.limit) {
-          query = query.limit(options.limit);
+          query.limit(options.limit);
         }
         
         // Execute the query
@@ -96,9 +96,7 @@ export const addData = async <T extends Record<string, any>>(
 ): Promise<{ data: any; error: any }> => {
   try {
     const { data: result, error } = await supabase
-      .from(tableName)
-      // Using any here because TypeScript can't correctly infer the types
-      // based on the dynamic tableName parameter
+      .from(tableName as string)
       .insert(data as any)
       .select();
     
@@ -117,9 +115,7 @@ export const updateData = async <T extends Record<string, any>>(
 ): Promise<{ data: any; error: any }> => {
   try {
     const { data: result, error } = await supabase
-      .from(tableName)
-      // Using any here because TypeScript can't correctly infer the types
-      // based on the dynamic tableName parameter
+      .from(tableName as string)
       .update(data as any)
       .eq('id', id)
       .select();
@@ -138,7 +134,7 @@ export const deleteData = async (
 ): Promise<{ error: any }> => {
   try {
     const { error } = await supabase
-      .from(tableName)
+      .from(tableName as string)
       .delete()
       .eq('id', id);
     
