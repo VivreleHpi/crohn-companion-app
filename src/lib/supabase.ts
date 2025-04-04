@@ -1,6 +1,5 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { toast } from '@/components/ui/use-toast';
 
 // URL et clé anon de Supabase (déjà définies dans le projet)
 const supabaseUrl = 'https://lwxhputpykxnyiiwlvhj.supabase.co';

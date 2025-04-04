@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 const Redirect = () => {
   const navigate = useNavigate();
@@ -13,58 +13,47 @@ const Redirect = () => {
   useEffect(() => {
     console.log("Page de redirection: vérification de l'authentification...");
     
-    // Fonction pour extraire le token d'accès de l'URL si présent
+    // Fonction pour gérer la redirection après authentification
     const handleAuthRedirect = async () => {
       const hash = window.location.hash;
       console.log("Hash détecté dans l'URL:", hash ? "Oui" : "Non");
       setAuthStatus(hash ? "Traitement du token..." : "Vérification de l'authentification...");
       
-      if (hash && hash.includes('access_token')) {
-        console.log("Token d'accès détecté dans l'URL, traitement en cours...");
+      // Délai court pour permettre à Supabase de traiter le hash d'authentification
+      setTimeout(async () => {
         try {
-          // Vérifier si la session est valide
+          // Vérifier la session actuelle
           const { data, error } = await supabase.auth.getSession();
           
           if (error) {
-            console.error("Erreur lors du traitement de l'URL d'authentification:", error);
+            console.error("Erreur lors de la récupération de la session:", error);
             setAuthStatus("Erreur d'authentification: " + error.message);
+            navigate('/auth');
           } else if (data.session) {
             console.log("Session récupérée avec succès:", data.session.user.email);
             setAuthStatus("Authentification réussie! Redirection...");
+            
+            // Rediriger vers le dashboard après une connexion réussie
             setTimeout(() => {
               navigate('/dashboard');
               setProcessingAuth(false);
             }, 1000);
-            return; // Sortir de la fonction pour éviter la redirection par défaut
+          } else {
+            console.log("Pas de session active, redirection vers la page d'authentification");
+            setAuthStatus("Authentification nécessaire");
+            navigate('/auth');
           }
         } catch (err) {
           console.error("Erreur lors du traitement de la redirection:", err);
           setAuthStatus("Erreur lors du traitement: " + (err instanceof Error ? err.message : String(err)));
-        }
-      } else {
-        console.log("Pas de hash dans l'URL, vérification de l'authentification...");
-      }
-
-      // Si pas de hash ou erreur de traitement, attendre un peu et vérifier l'authentification
-      setTimeout(() => {
-        if (user) {
-          console.log("Utilisateur connecté, redirection vers le dashboard");
-          setAuthStatus("Utilisateur déjà connecté. Redirection...");
-          navigate('/dashboard');
-        } else {
-          console.log("Utilisateur non connecté, redirection vers l'authentification");
-          setAuthStatus("Authentification nécessaire. Redirection...");
           navigate('/auth');
         }
-        setProcessingAuth(false);
-      }, 2000); // Délai plus long pour s'assurer que l'authentification a le temps de se terminer
+      }, 500);
     };
 
     handleAuthRedirect();
+  }, [navigate, user]);
 
-  }, [user, navigate]);
-
-  // Cette page est invisible, donc retourne juste un loader
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-crohn-500 mb-4"></div>
@@ -74,7 +63,7 @@ const Redirect = () => {
         <div className="mt-8 p-4 bg-gray-100 rounded-lg max-w-md">
           <p className="text-sm text-gray-700">
             Si cette page reste affichée trop longtemps, vérifiez que les redirections sont correctement configurées
-            dans Google Cloud Console et Supabase.
+            dans Supabase.
           </p>
         </div>
       )}

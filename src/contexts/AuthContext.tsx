@@ -1,6 +1,7 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 type AuthContextType = {
@@ -22,12 +23,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) {
-      console.log('Supabase n\'est pas configuré correctement');
-      setLoading(false);
-      return;
-    }
-
     console.log('Initialisation de l\'authentification Supabase...');
 
     const getSession = async () => {
@@ -54,15 +49,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
+    // Configurer l'écouteur d'événements d'authentification AVANT de vérifier la session
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log('Événement d\'authentification:', event);
+        console.log('Utilisateur:', currentSession?.user?.id);
+        
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setLoading(false);
+        
+        // Notification à l'utilisateur selon l'événement
+        if (event === 'SIGNED_IN') {
+          toast({
+            title: "Connexion réussie",
+            description: "Vous êtes maintenant connecté",
+          });
+        } else if (event === 'SIGNED_OUT') {
+          toast({
+            title: "Déconnexion réussie",
+            description: "Vous avez été déconnecté",
+          });
+        } else if (event === 'USER_UPDATED') {
+          toast({
+            title: "Profil mis à jour",
+            description: "Vos informations ont été mises à jour",
+          });
+        }
       }
     );
 
+    // Ensuite, vérifier la session existante
     getSession();
 
     return () => {
@@ -74,18 +91,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithEmail = async (email: string, password: string) => {
     try {
       console.log('Tentative de connexion avec email:', email);
-      const { error, data } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
-
-      console.log('Connexion réussie:', data);
-      toast({
-        title: "Connexion réussie",
-        description: "Vous êtes maintenant connecté",
-      });
+      
+      console.log('Connexion réussie avec email');
     } catch (error: any) {
       console.error('Erreur de connexion:', error);
       toast({
@@ -100,10 +113,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Tentative de connexion avec Google...');
       
-      const redirectUrl = 'https://crohn-companion-app-git-main-vivre-hpis-projects.vercel.app/redirect';
+      // Déterminer l'URL de redirection basée sur l'environnement actuel
+      const currentUrl = window.location.origin;
+      const redirectUrl = `${currentUrl}/redirect`;
       console.log('URL de redirection configurée:', redirectUrl);
       
-      const { error, data } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: redirectUrl,
@@ -116,7 +131,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) throw error;
       
-      console.log('Redirection vers Google initiée:', data);
+      console.log('Redirection vers Google initiée');
     } catch (error: any) {
       console.error('Erreur de connexion avec Google:', error);
       toast({
@@ -130,14 +145,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string) => {
     try {
       console.log('Tentative d\'inscription avec email:', email);
-      const { error, data } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (error) throw error;
 
-      console.log('Inscription réussie:', data);
+      console.log('Inscription réussie');
       toast({
         title: "Inscription réussie",
         description: "Veuillez vérifier votre email pour confirmer votre compte",
@@ -159,10 +174,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) throw error;
 
       console.log('Déconnexion réussie');
-      toast({
-        title: "Déconnexion réussie",
-        description: "Vous avez été déconnecté avec succès",
-      });
     } catch (error: any) {
       console.error('Erreur de déconnexion:', error);
       toast({
