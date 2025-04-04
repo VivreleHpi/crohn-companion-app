@@ -89,15 +89,25 @@ export const useSupabaseData = <T>(
 };
 
 // Function to add data with proper typing
-export const addData = async <T extends Record<string, any>>(
+export const addData = async <T extends object>(
   tableName: ValidTableName, 
-  data: T & { user_id: string }
+  data: Omit<T, 'user_id'> & { user_id?: string }
 ): Promise<{ data: any; error: any }> => {
   try {
+    const dataWithUserId = { 
+      ...data, 
+      user_id: data.user_id || (supabase.auth.getUser ? (await supabase.auth.getUser()).data.user?.id : null)
+    };
+    
+    if (!dataWithUserId.user_id) {
+      console.error('No user ID available for this operation');
+      return { data: null, error: new Error('User not authenticated') };
+    }
+    
     // Using type assertion to overcome type compatibility issues
     const { data: result, error } = await supabase
       .from(tableName)
-      .insert(data as any)
+      .insert(dataWithUserId as any)
       .select();
     
     return { data: result, error };
@@ -108,7 +118,7 @@ export const addData = async <T extends Record<string, any>>(
 };
 
 // Function to update data with proper typing
-export const updateData = async <T extends Record<string, any>>(
+export const updateData = async <T extends object>(
   tableName: ValidTableName,
   id: string,
   data: Partial<T>
