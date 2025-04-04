@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { format, subDays, parseISO, startOfWeek, endOfWeek } from 'date-fns';
+import { format, parseISO, startOfWeek, endOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 export interface SymptomDataItem {
@@ -80,7 +80,7 @@ export const useReportsData = (currentWeekStart: Date) => {
         // Récupérer les médicaments pris
         const { data: medicationsRaw, error: medicationsError } = await supabase
           .from('medication_schedule')
-          .select('*, medication:medication_id(name)')
+          .select('*, medication:medication_id(*)')
           .eq('user_id', user.id)
           .gte('scheduled_date', weekStart.toISOString().split('T')[0])
           .lte('scheduled_date', weekEnd.toISOString().split('T')[0]);
@@ -104,16 +104,18 @@ export const useReportsData = (currentWeekStart: Date) => {
         const symptomsByDay = [...initialDayData];
         let totalSeverity = 0;
         
-        symptomsRaw?.forEach(symptom => {
-          const dayOfWeek = getDayFromISODate(symptom.time);
-          const dayIndex = daysOfWeek.findIndex(d => d === dayOfWeek);
-          
-          if (dayIndex >= 0) {
-            symptomsByDay[dayIndex].count += 1;
-            symptomsByDay[dayIndex].severity += symptom.severity;
-            totalSeverity += symptom.severity;
-          }
-        });
+        if (symptomsRaw && symptomsRaw.length > 0) {
+          symptomsRaw.forEach(symptom => {
+            const dayOfWeek = getDayFromISODate(symptom.time);
+            const dayIndex = daysOfWeek.findIndex(d => d === dayOfWeek);
+            
+            if (dayIndex >= 0) {
+              symptomsByDay[dayIndex].count += 1;
+              symptomsByDay[dayIndex].severity += symptom.severity;
+              totalSeverity += symptom.severity;
+            }
+          });
+        }
 
         // Calculer la sévérité moyenne par jour
         symptomsByDay.forEach(day => {
@@ -127,17 +129,19 @@ export const useReportsData = (currentWeekStart: Date) => {
         let bloodCount = 0;
         let totalBristolType = 0;
 
-        stoolsRaw?.forEach(stool => {
-          const dayOfWeek = getDayFromISODate(stool.time);
-          const dayIndex = daysOfWeek.findIndex(d => d === dayOfWeek);
-          
-          if (dayIndex >= 0) {
-            stoolsByDay[dayIndex].count += 1;
-            stoolsByDay[dayIndex].bristolType += stool.bristol_type;
-            totalBristolType += stool.bristol_type;
-            if (stool.has_blood) bloodCount++;
-          }
-        });
+        if (stoolsRaw && stoolsRaw.length > 0) {
+          stoolsRaw.forEach(stool => {
+            const dayOfWeek = getDayFromISODate(stool.time);
+            const dayIndex = daysOfWeek.findIndex(d => d === dayOfWeek);
+            
+            if (dayIndex >= 0) {
+              stoolsByDay[dayIndex].count += 1;
+              stoolsByDay[dayIndex].bristolType += stool.bristol_type;
+              totalBristolType += stool.bristol_type;
+              if (stool.has_blood) bloodCount++;
+            }
+          });
+        }
 
         // Calculer le type Bristol moyen par jour
         stoolsByDay.forEach(day => {
@@ -149,18 +153,22 @@ export const useReportsData = (currentWeekStart: Date) => {
         // Transformer les données de médicaments
         const medicationsByDay = [...initialDayData];
         
-        medicationsRaw?.forEach(med => {
-          const scheduledDate = new Date(med.scheduled_date);
-          const dayOfWeek = formatDate(scheduledDate);
-          const dayIndex = daysOfWeek.findIndex(d => d === dayOfWeek);
-          
-          if (dayIndex >= 0) {
-            medicationsByDay[dayIndex].scheduled += 1;
-            if (med.taken) {
-              medicationsByDay[dayIndex].taken += 1;
+        if (medicationsRaw && medicationsRaw.length > 0) {
+          medicationsRaw.forEach(med => {
+            if (med.scheduled_date) {
+              const scheduledDate = new Date(med.scheduled_date);
+              const dayOfWeek = formatDate(scheduledDate);
+              const dayIndex = daysOfWeek.findIndex(d => d === dayOfWeek);
+              
+              if (dayIndex >= 0) {
+                medicationsByDay[dayIndex].scheduled += 1;
+                if (med.taken) {
+                  medicationsByDay[dayIndex].taken += 1;
+                }
+              }
             }
-          }
-        });
+          });
+        }
 
         // Déterminer le statut (rémission ou crise)
         // Règles simplifiées: si sévérité moyenne > 2 OU type bristol moyen < 3 ou > 5 OU présence de sang
