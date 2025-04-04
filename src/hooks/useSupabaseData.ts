@@ -1,12 +1,9 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
-
-// Type for valid table names
-type TableName = keyof Database['public']['Tables'];
 
 // Create a union type of all allowed table names as string literals for strict type checking
 type ValidTableName = 'medication_schedule' | 'medications' | 'profiles' | 'stools' | 'symptoms';
@@ -97,9 +94,10 @@ export const addData = async <T extends Record<string, any>>(
   data: T & { user_id: string }
 ): Promise<{ data: any; error: any }> => {
   try {
+    // Using type assertion to overcome type compatibility issues
     const { data: result, error } = await supabase
       .from(tableName)
-      .insert(data)
+      .insert(data as any)
       .select();
     
     return { data: result, error };
@@ -116,9 +114,10 @@ export const updateData = async <T extends Record<string, any>>(
   data: Partial<T>
 ): Promise<{ data: any; error: any }> => {
   try {
+    // Using type assertion to overcome type compatibility issues
     const { data: result, error } = await supabase
       .from(tableName)
-      .update(data)
+      .update(data as any)
       .eq('id', id)
       .select();
     
