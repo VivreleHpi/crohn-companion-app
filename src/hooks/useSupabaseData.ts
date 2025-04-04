@@ -8,9 +8,12 @@ import { Database } from '@/integrations/supabase/types';
 // Type for valid table names
 type TableName = keyof Database['public']['Tables'];
 
+// Create a union type of all allowed table names as string literals for strict type checking
+type ValidTableName = 'medication_schedule' | 'medications' | 'profiles' | 'stools' | 'symptoms';
+
 // Generic hook for fetching data from Supabase
 export const useSupabaseData = <T>(
-  tableName: TableName,
+  tableName: ValidTableName,
   options?: {
     column?: string;
     value?: any;
@@ -36,10 +39,9 @@ export const useSupabaseData = <T>(
       try {
         setLoading(true);
         
-        // Build the query
-        // Using type assertion to avoid excessive type instantiation
+        // Build the query using the valid table name
         const query = supabase
-          .from(tableName as string)
+          .from(tableName)
           .select(options?.select || '*');
         
         // Filter by user by default
@@ -91,13 +93,13 @@ export const useSupabaseData = <T>(
 
 // Function to add data with proper typing
 export const addData = async <T extends Record<string, any>>(
-  tableName: TableName, 
+  tableName: ValidTableName, 
   data: T & { user_id: string }
 ): Promise<{ data: any; error: any }> => {
   try {
     const { data: result, error } = await supabase
-      .from(tableName as string)
-      .insert(data as any)
+      .from(tableName)
+      .insert(data)
       .select();
     
     return { data: result, error };
@@ -109,14 +111,14 @@ export const addData = async <T extends Record<string, any>>(
 
 // Function to update data with proper typing
 export const updateData = async <T extends Record<string, any>>(
-  tableName: TableName,
+  tableName: ValidTableName,
   id: string,
   data: Partial<T>
 ): Promise<{ data: any; error: any }> => {
   try {
     const { data: result, error } = await supabase
-      .from(tableName as string)
-      .update(data as any)
+      .from(tableName)
+      .update(data)
       .eq('id', id)
       .select();
     
@@ -129,12 +131,12 @@ export const updateData = async <T extends Record<string, any>>(
 
 // Function to delete data with proper typing
 export const deleteData = async (
-  tableName: TableName,
+  tableName: ValidTableName,
   id: string
 ): Promise<{ error: any }> => {
   try {
     const { error } = await supabase
-      .from(tableName as string)
+      .from(tableName)
       .delete()
       .eq('id', id);
     
