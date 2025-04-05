@@ -33,6 +33,7 @@ const ProfileForm = () => {
   const { user } = useAuth();
   const { profile, loading, updateProfile } = useProfile();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -46,32 +47,52 @@ const ProfileForm = () => {
 
   useEffect(() => {
     if (profile) {
+      console.log('Mise à jour du formulaire avec les données du profil:', profile);
       form.setValue('full_name', profile.full_name || '');
       form.setValue('email', profile.email || user?.email || '');
       form.setValue('phone_number', profile.phone_number || '');
       form.setValue('medical_info', profile.medical_info || '');
+    } else if (user && !loading) {
+      console.log('Aucun profil trouvé, utilisation des valeurs par défaut');
+      form.setValue('email', user.email || '');
     }
-  }, [profile, user, form]);
+  }, [profile, user, form, loading]);
 
   const onSubmit = async (data: ProfileFormValues) => {
-    if (!user) return;
-    
-    const success = await updateProfile({
-      full_name: data.full_name,
-      email: data.email,
-      phone_number: data.phone_number,
-      medical_info: data.medical_info,
-    });
-
-    if (success) {
+    if (!user) {
       toast({
-        title: "Profil mis à jour",
-        description: "Vos informations ont été enregistrées avec succès.",
+        title: "Non connecté",
+        description: "Vous devez être connecté pour mettre à jour votre profil",
+        variant: "destructive",
       });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      console.log('Soumission du formulaire de profil:', data);
+      const success = await updateProfile({
+        full_name: data.full_name,
+        email: data.email,
+        phone_number: data.phone_number,
+        medical_info: data.medical_info,
+      });
+
+      if (success) {
+        toast({
+          title: "Profil mis à jour",
+          description: "Vos informations ont été enregistrées avec succès.",
+        });
+      }
+    } catch (error) {
+      console.error('Erreur lors de la soumission du formulaire:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  if (loading && !form.formState.isSubmitting) {
+  if (loading && !isSubmitting) {
     return (
       <div className="flex justify-center items-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-crohn-500" />
@@ -151,9 +172,14 @@ const ProfileForm = () => {
               <Button 
                 type="submit" 
                 className="w-full"
-                disabled={form.formState.isSubmitting}
+                disabled={isSubmitting || loading}
               >
-                {form.formState.isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enregistrement...
+                  </>
+                ) : 'Enregistrer'}
               </Button>
             </form>
           </Form>
