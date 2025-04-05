@@ -1,87 +1,125 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Clock, X, Check, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseData } from '@/hooks/supabase';
+import { addData, updateData, deleteData } from '@/hooks/supabase';
 
-// Placeholder medications
-const initialMedications = [
-  { 
-    id: 1, 
-    name: "Azathioprine", 
-    dosage: "50mg", 
-    frequency: "1 fois par jour",
-    time: "08:00",
-    lastTaken: "2023-06-10",
-    status: "active"
-  },
-  { 
-    id: 2, 
-    name: "Prednisone", 
-    dosage: "20mg", 
-    frequency: "1 fois par jour",
-    time: "08:00",
-    lastTaken: "2023-06-09",
-    status: "active"
-  },
-  { 
-    id: 3, 
-    name: "Mésalazine", 
-    dosage: "1000mg", 
-    frequency: "3 fois par jour",
-    time: "08:00, 14:00, 20:00",
-    lastTaken: "2023-06-10",
-    status: "active"
-  }
-];
+// Interface pour les médicaments
+interface Medication {
+  id: string;
+  name: string;
+  dosage: string;
+  frequency: string;
+  time: string;
+  user_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  status?: string;
+}
 
-// Today's scheduled medications
-const todaySchedule = [
-  { id: 1, medicationId: 1, time: "08:00", taken: true },
-  { id: 2, medicationId: 2, time: "08:00", taken: false },
-  { id: 3, medicationId: 3, time: "08:00", taken: true },
-  { id: 4, medicationId: 3, time: "14:00", taken: false },
-  { id: 5, medicationId: 3, time: "20:00", taken: false }
-];
+// Interface pour les prises de médicaments
+interface MedicationSchedule {
+  id: string;
+  medication_id: string;
+  time: string;
+  taken: boolean;
+  taken_at?: string;
+  user_id?: string;
+  scheduled_date?: string;
+  created_at?: string;
+}
 
 const MedicationReminder = () => {
-  const [medications, setMedications] = useState(initialMedications);
-  const [schedule, setSchedule] = useState(todaySchedule);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [dosage, setDosage] = useState("");
   const [frequency, setFrequency] = useState("1");
   const [times, setTimes] = useState<string[]>(["08:00"]);
+  const { toast } = useToast();
+  const { user } = useAuth();
   
-  const handleSubmit = (e: React.FormEvent) => {
+  // Utiliser les hooks pour récupérer les données de Supabase
+  const { data: medications, loading: loadingMeds, error: medsError } = useSupabaseData<Medication>('medications', {
+    select: '*',
+    orderBy: { column: 'created_at', ascending: false }
+  });
+  
+  const { data: schedule, loading: loadingSchedule, error: scheduleError } = useSupabaseData<MedicationSchedule>('medication_schedule', {
+    select: '*',
+    orderBy: { column: 'time', ascending: true }
+  });
+  
+  useEffect(() => {
+    if (medsError) {
+      toast({
+        title: "Erreur de chargement",
+        description: "Impossible de charger vos médicaments",
+        variant: "destructive",
+      });
+    }
+    
+    if (scheduleError) {
+      toast({
+        title: "Erreur de chargement",
+        description: "Impossible de charger votre calendrier de médicaments",
+        variant: "destructive",
+      });
+    }
+  }, [medsError, scheduleError, toast]);
+  
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name || !dosage) return;
+    if (!name || !dosage || !user) return;
     
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    
-    const newMedication = {
-      id: Date.now(),
-      name,
-      dosage,
-      frequency: `${frequency} fois par jour`,
-      time: times.join(", "),
-      lastTaken: today,
-      status: "active"
-    };
-    
-    setMedications([...medications, newMedication]);
-    
-    // Create schedule entries for the new medication
-    const newScheduleEntries = times.map((time, index) => ({
-      id: Date.now() + index,
-      medicationId: newMedication.id,
-      time,
-      taken: false
-    }));
-    
-    setSchedule([...schedule, ...newScheduleEntries]);
-    resetForm();
+    try {
+      // Ajouter le médicament à Supabase
+      const { data: medicationData, error: medError } = await addData<Medication>('medications', {
+        name,
+        dosage,
+        frequency: `${frequency} fois par jour`,
+        time: times.join(", "),
+        user_id: user.id,
+        status: "active"
+      });
+      
+      if (medError) throw medError;
+      
+      if (medicationData && medicationData[0]) {
+        const medId = medicationData[0].id;
+        const today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+        
+        // Créer les entrées de calendrier pour le médicament
+        const schedulePromises = times.map(async (time) => {
+          return addData<MedicationSchedule>('medication_schedule', {
+            medication_id: medId,
+            time,
+            taken: false,
+            user_id: user.id,
+            scheduled_date: today
+          });
+        });
+        
+        await Promise.all(schedulePromises);
+        
+        toast({
+          title: "Médicament ajouté",
+          description: "Votre médicament a été ajouté avec succès",
+        });
+        
+        resetForm();
+      }
+    } catch (err) {
+      console.error("Erreur lors de l'ajout du médicament:", err);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'enregistrement",
+        variant: "destructive",
+      });
+    }
   };
   
   const resetForm = () => {
@@ -115,17 +153,37 @@ const MedicationReminder = () => {
     setTimes(newTimes);
   };
   
-  const handleTaken = (scheduleId: number) => {
-    setSchedule(schedule.map(item => 
-      item.id === scheduleId ? { ...item, taken: true } : item
-    ));
+  const handleTaken = async (scheduleId: string) => {
+    try {
+      const now = new Date();
+      
+      const { error } = await updateData<MedicationSchedule>('medication_schedule', scheduleId, {
+        taken: true,
+        taken_at: now.toISOString()
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Médicament pris",
+        description: "Prise de médicament enregistrée avec succès",
+      });
+    } catch (err) {
+      console.error("Erreur lors de la mise à jour de la prise:", err);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'enregistrement",
+        variant: "destructive",
+      });
+    }
   };
   
-  const getMedicationById = (id: number) => {
-    return medications.find(med => med.id === id);
+  const getMedicationById = (id: string) => {
+    return medications?.find(med => med.id === id);
   };
   
   const getUpcomingMedications = () => {
+    if (!schedule) return [];
     return schedule.filter(item => !item.taken).sort((a, b) => {
       // Sort by time
       const timeA = a.time.split(':').map(Number);
@@ -139,6 +197,7 @@ const MedicationReminder = () => {
   };
   
   const getTakenMedications = () => {
+    if (!schedule) return [];
     return schedule.filter(item => item.taken);
   };
   
@@ -249,95 +308,105 @@ const MedicationReminder = () => {
       <div className="glass-card rounded-xl p-5 animate-on-load stagger-1">
         <h2 className="font-display font-medium mb-4">Aujourd'hui</h2>
         
-        <div className="space-y-5">
-          {/* Upcoming medications */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">À prendre</h3>
-            
-            {getUpcomingMedications().length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground bg-white/50 dark:bg-gray-800/20 rounded-lg">
-                <p>Tout est pris pour aujourd'hui</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {getUpcomingMedications().map(item => {
-                  const medication = getMedicationById(item.medicationId);
-                  if (!medication) return null;
-                  
-                  return (
-                    <div key={item.id} className="bg-white/50 dark:bg-gray-800/20 rounded-lg p-4 flex justify-between items-center">
-                      <div>
-                        <div className="flex items-center space-x-3">
-                          <div className="bg-crohn-100 dark:bg-crohn-900/30 text-crohn-500 dark:text-crohn-300 rounded-full p-1.5">
-                            <Clock className="w-4 h-4" />
+        {loadingSchedule ? (
+          <div className="text-center py-6">
+            <p className="text-muted-foreground">Chargement des données...</p>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {/* Upcoming medications */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">À prendre</h3>
+              
+              {getUpcomingMedications().length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground bg-white/50 dark:bg-gray-800/20 rounded-lg">
+                  <p>Tout est pris pour aujourd'hui</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {getUpcomingMedications().map(item => {
+                    const medication = getMedicationById(item.medication_id);
+                    if (!medication) return null;
+                    
+                    return (
+                      <div key={item.id} className="bg-white/50 dark:bg-gray-800/20 rounded-lg p-4 flex justify-between items-center">
+                        <div>
+                          <div className="flex items-center space-x-3">
+                            <div className="bg-crohn-100 dark:bg-crohn-900/30 text-crohn-500 dark:text-crohn-300 rounded-full p-1.5">
+                              <Clock className="w-4 h-4" />
+                            </div>
+                            <h3 className="font-medium">{medication.name}</h3>
                           </div>
-                          <h3 className="font-medium">{medication.name}</h3>
+                          <div className="ml-9 mt-1 text-sm text-muted-foreground">
+                            {medication.dosage} • {item.time}
+                          </div>
                         </div>
-                        <div className="ml-9 mt-1 text-sm text-muted-foreground">
-                          {medication.dosage} • {item.time}
+                        
+                        <button
+                          onClick={() => handleTaken(item.id)}
+                          className="bg-crohn-500 hover:bg-crohn-600 text-white rounded-full p-2 transition-all duration-300"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            
+            {/* Medications taken today */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Déjà pris</h3>
+              
+              {getTakenMedications().length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground bg-white/50 dark:bg-gray-800/20 rounded-lg">
+                  <p>Aucun médicament pris aujourd'hui</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {getTakenMedications().map(item => {
+                    const medication = getMedicationById(item.medication_id);
+                    if (!medication) return null;
+                    
+                    return (
+                      <div key={item.id} className="bg-gray-100/80 dark:bg-gray-800/10 rounded-lg p-4 flex justify-between items-center text-muted-foreground">
+                        <div>
+                          <div className="flex items-center space-x-3">
+                            <div className="bg-crohn-50 dark:bg-crohn-900/10 text-crohn-400 dark:text-crohn-500 rounded-full p-1.5">
+                              <Check className="w-4 h-4" />
+                            </div>
+                            <h3 className="font-medium">{medication.name}</h3>
+                          </div>
+                          <div className="ml-9 mt-1 text-sm">
+                            {medication.dosage} • {item.time}
+                          </div>
                         </div>
                       </div>
-                      
-                      <button
-                        onClick={() => handleTaken(item.id)}
-                        className="bg-crohn-500 hover:bg-crohn-600 text-white rounded-full p-2 transition-all duration-300"
-                      >
-                        <Check className="w-4 h-4" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-          
-          {/* Medications taken today */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Déjà pris</h3>
-            
-            {getTakenMedications().length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground bg-white/50 dark:bg-gray-800/20 rounded-lg">
-                <p>Aucun médicament pris aujourd'hui</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {getTakenMedications().map(item => {
-                  const medication = getMedicationById(item.medicationId);
-                  if (!medication) return null;
-                  
-                  return (
-                    <div key={item.id} className="bg-gray-100/80 dark:bg-gray-800/10 rounded-lg p-4 flex justify-between items-center text-muted-foreground">
-                      <div>
-                        <div className="flex items-center space-x-3">
-                          <div className="bg-crohn-50 dark:bg-crohn-900/10 text-crohn-400 dark:text-crohn-500 rounded-full p-1.5">
-                            <Check className="w-4 h-4" />
-                          </div>
-                          <h3 className="font-medium">{medication.name}</h3>
-                        </div>
-                        <div className="ml-9 mt-1 text-sm">
-                          {medication.dosage} • {item.time}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+        )}
       </div>
       
       {/* Medication list */}
       <div className="glass-card rounded-xl p-5 animate-on-load stagger-2">
         <h2 className="font-display font-medium mb-4">Mes médicaments</h2>
         
-        {medications.length === 0 ? (
+        {loadingMeds ? (
+          <div className="text-center py-6">
+            <p className="text-muted-foreground">Chargement des données...</p>
+          </div>
+        ) : medications && medications.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <p>Aucun médicament enregistré</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {medications.map(medication => (
+            {medications && medications.map(medication => (
               <div key={medication.id} className="bg-white/50 dark:bg-gray-800/20 rounded-lg p-4">
                 <div className="flex justify-between">
                   <div>

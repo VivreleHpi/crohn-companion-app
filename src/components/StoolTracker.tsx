@@ -1,7 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, ChevronDown, X, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseData } from '@/hooks/supabase';
+import { addData, deleteData } from '@/hooks/supabase';
 
 // Bristol Stool Scale
 const bristolScaleTypes = [
@@ -49,61 +53,79 @@ const bristolScaleTypes = [
   }
 ];
 
-// Placeholder logs
-const initialLogs = [
-  { 
-    id: 1, 
-    bristolType: 3, 
-    time: "07:45", 
-    date: "2023-06-10", 
-    hasBlood: false, 
-    hasMucus: false, 
-    notes: "" 
-  },
-  { 
-    id: 2, 
-    bristolType: 6, 
-    time: "14:30", 
-    date: "2023-06-09", 
-    hasBlood: true, 
-    hasMucus: true, 
-    notes: "Douleurs abdominales avant" 
-  }
-];
+// Interface pour les données de selles
+interface StoolLog {
+  id: string;
+  bristol_type: number;
+  time: string;
+  date?: string;
+  has_blood: boolean;
+  has_mucus: boolean;
+  notes: string | null;
+  user_id?: string;
+  created_at?: string;
+}
 
 const StoolTracker = () => {
-  const [logs, setLogs] = useState(initialLogs);
   const [showForm, setShowForm] = useState(false);
   const [selectedType, setSelectedType] = useState<number | null>(null);
   const [hasBlood, setHasBlood] = useState(false);
   const [hasMucus, setHasMucus] = useState(false);
   const [notes, setNotes] = useState("");
   const [showInfo, setShowInfo] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
   
-  const handleSubmit = (e: React.FormEvent) => {
+  // Utiliser le hook pour récupérer les données de Supabase
+  const { data: logs, loading, error } = useSupabaseData<StoolLog>('stools', {
+    select: '*',
+    orderBy: { column: 'created_at', ascending: false }
+  });
+  
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Erreur de chargement",
+        description: "Impossible de charger vos données de selles",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
+  
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (selectedType === null) return;
+    if (!selectedType || !user) return;
     
-    const now = new Date();
-    const time = now.toLocaleTimeString('fr-FR', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-    const date = now.toISOString().split('T')[0];
-    
-    const newLog = {
-      id: Date.now(),
-      bristolType: selectedType,
-      time,
-      date,
-      hasBlood,
-      hasMucus,
-      notes
-    };
-    
-    setLogs([newLog, ...logs]);
-    resetForm();
+    try {
+      const now = new Date();
+      
+      // Ajouter à Supabase
+      const { data, error } = await addData<StoolLog>('stools', {
+        bristol_type: selectedType,
+        has_blood: hasBlood,
+        has_mucus: hasMucus,
+        notes: notes || null,
+        time: now.toISOString(),
+        user_id: user.id
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Selle enregistrée",
+        description: "Votre selle a été enregistrée avec succès",
+      });
+      
+      resetForm();
+    } catch (err) {
+      console.error("Erreur lors de l'enregistrement de la selle:", err);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'enregistrement",
+        variant: "destructive",
+      });
+    }
   };
   
   const resetForm = () => {
@@ -114,15 +136,41 @@ const StoolTracker = () => {
     setNotes("");
   };
   
-  const handleDelete = (id: number) => {
-    setLogs(logs.filter(log => log.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await deleteData('stools', id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Selle supprimée",
+        description: "L'enregistrement a été supprimé avec succès",
+      });
+    } catch (err) {
+      console.error("Erreur lors de la suppression:", err);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la suppression",
+        variant: "destructive",
+      });
+    }
   };
   
+  // Fonction pour formater la date pour l'affichage
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('fr-FR', { 
       day: 'numeric', 
       month: 'long' 
+    });
+  };
+  
+  // Fonction pour formater l'heure pour l'affichage
+  const formatTime = (timeStr: string) => {
+    const date = new Date(timeStr);
+    return date.toLocaleTimeString('fr-FR', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
     });
   };
   
@@ -268,41 +316,47 @@ const StoolTracker = () => {
       <div className="glass-card rounded-xl p-5 animate-on-load stagger-1">
         <h2 className="font-display font-medium mb-4">Historique récent</h2>
         
-        {logs.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-6">
+            <p className="text-muted-foreground">Chargement des données...</p>
+          </div>
+        ) : logs && logs.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <p>Aucune selle enregistrée</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {logs.map(log => (
+            {logs && logs.map(log => (
               <div key={log.id} className="bg-white/50 dark:bg-gray-800/20 rounded-lg p-4">
                 <div className="flex justify-between">
                   <div className="flex items-center space-x-2">
                     <div className={cn(
                       "w-4 h-4 rounded-full",
-                      log.bristolType === 1 ? "bg-amber-800" : "",
-                      log.bristolType === 2 ? "bg-amber-600" : "",
-                      log.bristolType === 3 ? "bg-amber-500" : "",
-                      log.bristolType === 4 ? "bg-amber-400" : "",
-                      log.bristolType === 5 ? "bg-amber-300" : "",
-                      log.bristolType === 6 ? "bg-amber-200" : "",
-                      log.bristolType === 7 ? "bg-amber-100" : "",
+                      log.bristol_type === 1 ? "bg-amber-800" : "",
+                      log.bristol_type === 2 ? "bg-amber-600" : "",
+                      log.bristol_type === 3 ? "bg-amber-500" : "",
+                      log.bristol_type === 4 ? "bg-amber-400" : "",
+                      log.bristol_type === 5 ? "bg-amber-300" : "",
+                      log.bristol_type === 6 ? "bg-amber-200" : "",
+                      log.bristol_type === 7 ? "bg-amber-100" : "",
                     )}></div>
                     <div>
                       <h3 className="font-medium">
-                        Type {log.bristolType} 
-                        {(log.hasBlood || log.hasMucus) && (
+                        Type {log.bristol_type} 
+                        {(log.has_blood || log.has_mucus) && (
                           <span className="text-sm font-normal ml-2">
-                            {log.hasBlood && "• Sang"}
-                            {log.hasBlood && log.hasMucus && " "}
-                            {log.hasMucus && "• Mucus"}
+                            {log.has_blood && "• Sang"}
+                            {log.has_blood && log.has_mucus && " "}
+                            {log.has_mucus && "• Mucus"}
                           </span>
                         )}
                       </h3>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <span className="text-sm text-muted-foreground">{log.time} • {formatDate(log.date)}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {formatTime(log.time || log.created_at || '')} • {formatDate(log.time || log.created_at || '')}
+                    </span>
                     <button 
                       onClick={() => handleDelete(log.id)}
                       className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"

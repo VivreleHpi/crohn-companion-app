@@ -1,7 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseData } from '@/hooks/supabase';
+import { addData, deleteData } from '@/hooks/supabase';
 
 // Common symptoms for Crohn's disease
 const commonSymptoms = [
@@ -25,23 +29,54 @@ const severityLevels = [
   { value: 4, label: "Très sévère", color: "bg-health-red" }
 ];
 
-// Track logs for the current demo
-const initialLogs = [
-  { id: 1, symptom: "Douleur abdominale", severity: 2, time: "08:30", notes: "Après le petit-déjeuner" },
-  { id: 2, symptom: "Fatigue", severity: 3, time: "14:15", notes: "" }
-];
+// Interface pour les données de symptômes
+interface SymptomLog {
+  id: string;
+  symptom: string;
+  severity: number;
+  time: string;
+  notes: string;
+  user_id?: string;
+  created_at?: string;
+}
 
 const SymptomTracker = () => {
-  const [logs, setLogs] = useState(initialLogs);
   const [showForm, setShowForm] = useState(false);
   const [symptom, setSymptom] = useState("");
   const [customSymptom, setCustomSymptom] = useState("");
   const [severity, setSeverity] = useState(1);
   const [notes, setNotes] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
   
-  const handleSubmit = (e: React.FormEvent) => {
+  // Utiliser le hook pour récupérer les données de Supabase
+  const { data: logs, loading, error } = useSupabaseData<SymptomLog>('symptoms', {
+    select: '*',
+    orderBy: { column: 'created_at', ascending: false }
+  });
+  
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Erreur de chargement",
+        description: "Impossible de charger vos symptômes",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
+  
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Non connecté",
+        description: "Vous devez être connecté pour enregistrer un symptôme",
+        variant: "destructive",
+      });
+      return;
+    }
     
     const now = new Date();
     const time = now.toLocaleTimeString('fr-FR', { 
@@ -53,16 +88,32 @@ const SymptomTracker = () => {
     
     if (!symptomToAdd) return;
     
-    const newLog = {
-      id: Date.now(),
-      symptom: symptomToAdd,
-      severity,
-      time,
-      notes
-    };
-    
-    setLogs([newLog, ...logs]);
-    resetForm();
+    try {
+      // Ajouter à Supabase
+      const { data, error } = await addData<SymptomLog>('symptoms', {
+        name: symptomToAdd,
+        severity,
+        notes,
+        time: now.toISOString(),
+        user_id: user.id
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Symptôme enregistré",
+        description: "Votre symptôme a été enregistré avec succès",
+      });
+      
+      resetForm();
+    } catch (err) {
+      console.error("Erreur lors de l'enregistrement du symptôme:", err);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'enregistrement",
+        variant: "destructive",
+      });
+    }
   };
   
   const resetForm = () => {
@@ -73,8 +124,33 @@ const SymptomTracker = () => {
     setNotes("");
   };
   
-  const handleDelete = (id: number) => {
-    setLogs(logs.filter(log => log.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await deleteData('symptoms', id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Symptôme supprimé",
+        description: "Le symptôme a été supprimé avec succès",
+      });
+    } catch (err) {
+      console.error("Erreur lors de la suppression du symptôme:", err);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la suppression",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Fonction pour formater la date/heure pour l'affichage
+  const formatDateTime = (isoString: string) => {
+    const date = new Date(isoString);
+    return date.toLocaleTimeString('fr-FR', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
   };
   
   return (
@@ -208,13 +284,17 @@ const SymptomTracker = () => {
       <div className="glass-card rounded-xl p-5 animate-on-load stagger-1">
         <h2 className="font-display font-medium mb-4">Historique récent</h2>
         
-        {logs.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-6">
+            <p className="text-muted-foreground">Chargement des données...</p>
+          </div>
+        ) : logs && logs.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <p>Aucun symptôme enregistré</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {logs.map(log => (
+            {logs && logs.map(log => (
               <div key={log.id} className="bg-white/50 dark:bg-gray-800/20 rounded-lg p-4">
                 <div className="flex justify-between">
                   <div className="flex items-center space-x-2">
@@ -225,10 +305,10 @@ const SymptomTracker = () => {
                       log.severity === 3 ? "bg-health-orange" : "",
                       log.severity === 4 ? "bg-health-red" : "",
                     )}></div>
-                    <h3 className="font-medium">{log.symptom}</h3>
+                    <h3 className="font-medium">{log.name}</h3>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <span className="text-sm text-muted-foreground">{log.time}</span>
+                    <span className="text-sm text-muted-foreground">{formatDateTime(log.time || log.created_at || '')}</span>
                     <button 
                       onClick={() => handleDelete(log.id)}
                       className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
