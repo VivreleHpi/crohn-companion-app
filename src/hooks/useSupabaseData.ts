@@ -86,7 +86,7 @@ export const useSupabaseData = <T>(
 
     // Set up realtime subscription
     const channel = supabase
-      .channel(`public:${tableName}`)
+      .channel(`public:${tableName}:user_id=eq.${user.id}`)
       .on('postgres_changes', {
         event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
         schema: 'public',
@@ -95,25 +95,41 @@ export const useSupabaseData = <T>(
       }, (payload) => {
         console.log('Change received:', payload);
         
-        // Handle the different event types
-        if (payload.eventType === 'INSERT') {
-          setData((currentData) => [...currentData, payload.new as T]);
-        } else if (payload.eventType === 'UPDATE') {
-          setData((currentData) => 
-            currentData.map((item: any) => 
-              item.id === payload.new.id ? payload.new as T : item
-            )
-          );
-        } else if (payload.eventType === 'DELETE') {
-          setData((currentData) => 
-            currentData.filter((item: any) => item.id !== payload.old.id)
-          );
+        try {
+          // Handle the different event types
+          if (payload.eventType === 'INSERT') {
+            // Check if we need to apply additional filters
+            let shouldAdd = true;
+            if (options?.column && options?.value !== undefined && 
+                payload.new && payload.new[options.column] !== options.value) {
+              shouldAdd = false;
+            }
+            
+            if (shouldAdd) {
+              setData((currentData) => [...currentData, payload.new as T]);
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            setData((currentData) => 
+              currentData.map((item: any) => 
+                item.id === payload.new.id ? payload.new as T : item
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setData((currentData) => 
+              currentData.filter((item: any) => item.id !== payload.old.id)
+            );
+          }
+        } catch (err) {
+          console.error('Error handling realtime data:', err);
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Realtime subscription status for ${tableName}:`, status);
+      });
 
     // Cleanup subscription when component unmounts
     return () => {
+      console.log(`Cleaning up realtime subscription for ${tableName}`);
       supabase.removeChannel(channel);
     };
   }, [tableName, options, user, toast]);
@@ -137,11 +153,19 @@ export const addData = async <T extends object>(
       return { data: null, error: new Error('User not authenticated') };
     }
     
+    console.log(`Adding data to ${tableName}:`, dataWithUserId);
+    
     // Using type assertion to overcome type compatibility issues
     const { data: result, error } = await supabase
       .from(tableName)
       .insert(dataWithUserId as any)
       .select();
+    
+    if (error) {
+      console.error(`Error adding data to ${tableName}:`, error);
+    } else {
+      console.log(`Successfully added data to ${tableName}:`, result);
+    }
     
     return { data: result, error };
   } catch (error) {
@@ -157,12 +181,20 @@ export const updateData = async <T extends object>(
   data: Partial<T>
 ): Promise<{ data: any; error: any }> => {
   try {
+    console.log(`Updating data in ${tableName} with id ${id}:`, data);
+    
     // Using type assertion to overcome type compatibility issues
     const { data: result, error } = await supabase
       .from(tableName)
       .update(data as any)
       .eq('id', id)
       .select();
+    
+    if (error) {
+      console.error(`Error updating data in ${tableName}:`, error);
+    } else {
+      console.log(`Successfully updated data in ${tableName}:`, result);
+    }
     
     return { data: result, error };
   } catch (error) {
@@ -177,10 +209,18 @@ export const deleteData = async (
   id: string
 ): Promise<{ error: any }> => {
   try {
+    console.log(`Deleting data from ${tableName} with id ${id}`);
+    
     const { error } = await supabase
       .from(tableName)
       .delete()
       .eq('id', id);
+    
+    if (error) {
+      console.error(`Error deleting data from ${tableName}:`, error);
+    } else {
+      console.log(`Successfully deleted data from ${tableName} with id ${id}`);
+    }
     
     return { error };
   } catch (error) {
