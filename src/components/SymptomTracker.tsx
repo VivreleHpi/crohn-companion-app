@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -31,11 +30,11 @@ const severityLevels = [
 
 // Interface pour les données de symptômes
 interface SymptomLog {
-  id: string;
+  id?: string;
   symptom: string;
   severity: number;
   time: string;
-  notes: string;
+  notes: string | null;
   user_id?: string;
   created_at?: string;
 }
@@ -79,10 +78,7 @@ const SymptomTracker = () => {
     }
     
     const now = new Date();
-    const time = now.toLocaleTimeString('fr-FR', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
+    const time = now.toISOString();
     
     const symptomToAdd = symptom === "Autre" ? customSymptom : symptom;
     
@@ -93,8 +89,8 @@ const SymptomTracker = () => {
       const { data, error } = await addData<SymptomLog>('symptoms', {
         symptom: symptomToAdd,
         severity,
-        notes,
-        time: now.toISOString(),
+        notes: notes || null,
+        time,
         user_id: user.id
       });
       

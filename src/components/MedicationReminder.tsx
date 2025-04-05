@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Plus, Clock, X, Check, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -81,7 +82,8 @@ const MedicationReminder = () => {
         dosage,
         frequency: `${frequency} fois par jour`,
         time: times.join(", "),
-        status: "active"
+        status: "active",
+        user_id: user.id
       });
       
       if (medError) throw medError;
@@ -96,7 +98,8 @@ const MedicationReminder = () => {
             medication_id: medId!,
             time,
             taken: false,
-            scheduled_date: today
+            scheduled_date: today,
+            user_id: user.id
           });
         });
         

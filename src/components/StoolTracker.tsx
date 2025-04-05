@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Plus, ChevronDown, X, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -105,7 +106,8 @@ const StoolTracker = () => {
         has_blood: hasBlood,
         has_mucus: hasMucus,
         notes: notes || null,
-        time: now.toISOString()
+        time: now.toISOString(),
+        user_id: user.id
       });
       
       if (error) throw error;
