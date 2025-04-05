@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus, ChevronDown, X, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -55,7 +54,7 @@ const bristolScaleTypes = [
 
 // Interface pour les données de selles
 interface StoolLog {
-  id: string;
+  id?: string;
   bristol_type: number;
   time: string;
   date?: string;
@@ -106,8 +105,7 @@ const StoolTracker = () => {
         has_blood: hasBlood,
         has_mucus: hasMucus,
         notes: notes || null,
-        time: now.toISOString(),
-        user_id: user.id
+        time: now.toISOString()
       });
       
       if (error) throw error;
@@ -156,7 +154,6 @@ const StoolTracker = () => {
     }
   };
   
-  // Fonction pour formater la date pour l'affichage
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('fr-FR', { 
@@ -165,7 +162,6 @@ const StoolTracker = () => {
     });
   };
   
-  // Fonction pour formater l'heure pour l'affichage
   const formatTime = (timeStr: string) => {
     const date = new Date(timeStr);
     return date.toLocaleTimeString('fr-FR', { 
@@ -176,7 +172,6 @@ const StoolTracker = () => {
   
   return (
     <div className="space-y-6 pb-20">
-      {/* Header */}
       <div className="glass-card rounded-xl p-5 animate-on-load">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-2xl font-display font-medium">Suivi des selles</h1>
@@ -217,7 +212,6 @@ const StoolTracker = () => {
         </button>
       </div>
       
-      {/* Add stool log form */}
       {showForm && (
         <div className="glass-card rounded-xl p-5 animate-scale-in">
           <div className="flex justify-between items-center mb-4">
@@ -312,7 +306,6 @@ const StoolTracker = () => {
         </div>
       )}
       
-      {/* Stool logs */}
       <div className="glass-card rounded-xl p-5 animate-on-load stagger-1">
         <h2 className="font-display font-medium mb-4">Historique récent</h2>
         
@@ -358,7 +351,7 @@ const StoolTracker = () => {
                       {formatTime(log.time || log.created_at || '')} • {formatDate(log.time || log.created_at || '')}
                     </span>
                     <button 
-                      onClick={() => handleDelete(log.id)}
+                      onClick={() => handleDelete(log.id!)}
                       className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                     >
                       <X className="w-4 h-4" />

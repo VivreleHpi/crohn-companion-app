@@ -5,7 +5,7 @@ import { ValidTableName } from './useSupabaseData';
 // Function to add data with proper typing
 export const addData = async <T extends object>(
   tableName: ValidTableName, 
-  data: Omit<T, 'user_id'> & { user_id?: string }
+  data: Omit<T, 'id' | 'user_id' | 'created_at' | 'updated_at'> & { user_id?: string }
 ): Promise<{ data: any; error: any }> => {
   try {
     const dataWithUserId = { 

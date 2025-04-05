@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus, Clock, X, Check, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -9,7 +8,7 @@ import { addData, updateData, deleteData } from '@/hooks/supabase';
 
 // Interface pour les médicaments
 interface Medication {
-  id: string;
+  id?: string;
   name: string;
   dosage: string;
   frequency: string;
@@ -22,7 +21,7 @@ interface Medication {
 
 // Interface pour les prises de médicaments
 interface MedicationSchedule {
-  id: string;
+  id?: string;
   medication_id: string;
   time: string;
   taken: boolean;
@@ -82,7 +81,6 @@ const MedicationReminder = () => {
         dosage,
         frequency: `${frequency} fois par jour`,
         time: times.join(", "),
-        user_id: user.id,
         status: "active"
       });
       
@@ -95,10 +93,9 @@ const MedicationReminder = () => {
         // Créer les entrées de calendrier pour le médicament
         const schedulePromises = times.map(async (time) => {
           return addData<MedicationSchedule>('medication_schedule', {
-            medication_id: medId,
+            medication_id: medId!,
             time,
             taken: false,
-            user_id: user.id,
             scheduled_date: today
           });
         });
@@ -343,7 +340,7 @@ const MedicationReminder = () => {
                         </div>
                         
                         <button
-                          onClick={() => handleTaken(item.id)}
+                          onClick={() => handleTaken(item.id!)}
                           className="bg-crohn-500 hover:bg-crohn-600 text-white rounded-full p-2 transition-all duration-300"
                         >
                           <Check className="w-4 h-4" />

@@ -91,7 +91,7 @@ const SymptomTracker = () => {
     try {
       // Ajouter à Supabase
       const { data, error } = await addData<SymptomLog>('symptoms', {
-        name: symptomToAdd,
+        symptom: symptomToAdd,
         severity,
         notes,
         time: now.toISOString(),
@@ -305,7 +305,7 @@ const SymptomTracker = () => {
                       log.severity === 3 ? "bg-health-orange" : "",
                       log.severity === 4 ? "bg-health-red" : "",
                     )}></div>
-                    <h3 className="font-medium">{log.name}</h3>
+                    <h3 className="font-medium">{log.symptom}</h3>
                   </div>
                   <div className="flex items-center space-x-3">
                     <span className="text-sm text-muted-foreground">{formatDateTime(log.time || log.created_at || '')}</span>
