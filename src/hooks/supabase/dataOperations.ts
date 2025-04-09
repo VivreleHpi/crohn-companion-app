@@ -93,3 +93,70 @@ export const deleteData = async (
     return { error };
   }
 };
+
+// Nouvelle fonction pour récupérer les données avec mise à jour en temps réel
+export const fetchDataWithRealtime = async <T>(
+  tableName: ValidTableName,
+  userId: string,
+  setData: React.Dispatch<React.SetStateAction<T[]>>,
+  options?: {
+    column?: string;
+    value?: any;
+    select?: string;
+    orderBy?: { column: string; ascending: boolean };
+    limit?: number;
+  }
+): Promise<{ error: any }> => {
+  try {
+    // Build the query
+    let query = supabase
+      .from(tableName)
+      .select(options?.select || '*') as any;
+    
+    // Filter by user by default
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    
+    // Add other filters if needed
+    if (options?.column && options?.value !== undefined) {
+      query = query.eq(options.column, options.value);
+    }
+    
+    // Add ordering if specified
+    if (options?.orderBy) {
+      query = query.order(options.orderBy.column, { 
+        ascending: options.orderBy.ascending 
+      });
+    }
+    
+    // Add limit if specified
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+    
+    // Execute the query
+    const { data: result, error } = await query;
+    
+    if (error) {
+      console.error(`Error retrieving data from ${tableName}:`, error);
+      return { error };
+    }
+    
+    // Set the initial data
+    setData(result as T[]);
+    
+    // Set up realtime subscription
+    const cleanupSubscription = setupRealtimeSubscription<T>(
+      tableName,
+      userId,
+      setData,
+      options
+    );
+    
+    return { error: null };
+  } catch (error) {
+    console.error(`Error setting up realtime for ${tableName}:`, error);
+    return { error };
+  }
+};

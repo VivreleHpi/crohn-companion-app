@@ -14,7 +14,8 @@ export const setupRealtimeSubscription = <T>(
 ): (() => void) => {
   console.log(`Setting up real-time subscription for ${tableName} (user ${userId})`);
   
-  const channelName = `public:${tableName}:user_id=eq.${userId}`;
+  // Créer un nom de canal unique pour chaque utilisateur et table
+  const channelName = `realtime:${tableName}:user_${userId}`;
   
   const channel = supabase
     .channel(channelName)

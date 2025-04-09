@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { setupRealtimeSubscription } from './realtimeSubscription';
+import { fetchDataWithRealtime } from './dataOperations';
 
 // Create a union type of all allowed table names as string literals for strict type checking
 export type ValidTableName = 'medication_schedule' | 'medications' | 'profiles' | 'stools' | 'symptoms';
@@ -36,39 +37,16 @@ export const useSupabaseData = <T>(
       try {
         setLoading(true);
         
-        // Build the query using the valid table name and type assertion to avoid deep type instantiation
-        let query = supabase
-          .from(tableName)
-          .select(options?.select || '*') as any;
+        // Utilisation de notre nouvelle fonction pour récupérer les données avec temps réel
+        const { error: fetchError } = await fetchDataWithRealtime<T>(
+          tableName,
+          user.id,
+          setData,
+          options
+        );
         
-        // Filter by user by default
-        if (user.id) {
-          query = query.eq('user_id', user.id);
-        }
+        if (fetchError) throw fetchError;
         
-        // Add other filters if needed
-        if (options?.column && options?.value !== undefined) {
-          query = query.eq(options.column, options.value);
-        }
-        
-        // Add ordering if specified
-        if (options?.orderBy) {
-          query = query.order(options.orderBy.column, { 
-            ascending: options.orderBy.ascending 
-          });
-        }
-        
-        // Add limit if specified
-        if (options?.limit) {
-          query = query.limit(options.limit);
-        }
-        
-        // Execute the query
-        const { data: result, error } = await query;
-        
-        if (error) throw error;
-        
-        setData(result as T[]);
       } catch (err: any) {
         console.error(`Error retrieving data from ${tableName}:`, err);
         setError(err);
@@ -84,15 +62,10 @@ export const useSupabaseData = <T>(
 
     fetchData();
 
-    // Set up realtime subscription
-    const cleanupSubscription = setupRealtimeSubscription<T>(
-      tableName,
-      user.id, 
-      setData,
-      options
-    );
-
-    return cleanupSubscription;
+    // Nettoyage - la fonction setupRealtimeSubscription est maintenant gérée par fetchDataWithRealtime
+    return () => {
+      // Plus besoin de nettoyage manuel ici car c'est géré par fetchDataWithRealtime
+    };
   }, [tableName, options, user, toast]);
 
   return { data, loading, error };
