@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { ValidTableName } from './useSupabaseData';
+import { setupRealtimeSubscription } from './realtimeSubscription';
 
 // Function to add data with proper typing
 export const addData = async <T extends object>(
