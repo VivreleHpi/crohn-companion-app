@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { setupRealtimeSubscription } from './realtimeSubscription';
 import { fetchDataWithRealtime } from './dataOperations';
 
 // Create a union type of all allowed table names as string literals for strict type checking
@@ -33,19 +32,27 @@ export const useSupabaseData = <T>(
       return;
     }
 
+    let cleanupFunction = () => {};
+
     const fetchData = async () => {
       try {
         setLoading(true);
         
-        // Utilisation de notre nouvelle fonction pour récupérer les données avec temps réel
-        const { error: fetchError } = await fetchDataWithRealtime<T>(
+        // Utilisation de notre fonction pour récupérer les données avec temps réel
+        const { error: fetchError, cleanup } = await fetchDataWithRealtime<T>(
           tableName,
           user.id,
           setData,
-          options
+          {
+            ...options,
+            toast
+          }
         );
         
         if (fetchError) throw fetchError;
+        
+        // Stocker la fonction de nettoyage pour l'utiliser lors du démontage du composant
+        cleanupFunction = cleanup;
         
       } catch (err: any) {
         console.error(`Error retrieving data from ${tableName}:`, err);
@@ -62,9 +69,9 @@ export const useSupabaseData = <T>(
 
     fetchData();
 
-    // Nettoyage - la fonction setupRealtimeSubscription est maintenant gérée par fetchDataWithRealtime
+    // Nettoyage lors du démontage du composant
     return () => {
-      // Plus besoin de nettoyage manuel ici car c'est géré par fetchDataWithRealtime
+      cleanupFunction();
     };
   }, [tableName, options, user, toast]);
 

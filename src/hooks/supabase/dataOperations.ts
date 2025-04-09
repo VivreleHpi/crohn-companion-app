@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { ValidTableName } from './useSupabaseData';
 import { setupRealtimeSubscription } from './realtimeSubscription';
+import { useToast } from '@/hooks/use-toast';
 
 // Function to add data with proper typing
 export const addData = async <T extends object>(
@@ -95,7 +96,7 @@ export const deleteData = async (
   }
 };
 
-// Nouvelle fonction pour récupérer les données avec mise à jour en temps réel
+// Fonction pour récupérer les données avec mise à jour en temps réel
 export const fetchDataWithRealtime = async <T>(
   tableName: ValidTableName,
   userId: string,
@@ -106,8 +107,9 @@ export const fetchDataWithRealtime = async <T>(
     select?: string;
     orderBy?: { column: string; ascending: boolean };
     limit?: number;
+    toast?: ReturnType<typeof useToast>['toast'];
   }
-): Promise<{ error: any }> => {
+): Promise<{ error: any; cleanup: () => void }> => {
   try {
     // Build the query
     let query = supabase
@@ -141,7 +143,14 @@ export const fetchDataWithRealtime = async <T>(
     
     if (error) {
       console.error(`Error retrieving data from ${tableName}:`, error);
-      return { error };
+      if (options?.toast) {
+        options.toast({
+          title: "Erreur de chargement",
+          description: `Impossible de récupérer les données de ${tableName}`,
+          variant: "destructive",
+        });
+      }
+      return { error, cleanup: () => {} };
     }
     
     // Set the initial data
@@ -155,9 +164,9 @@ export const fetchDataWithRealtime = async <T>(
       options
     );
     
-    return { error: null };
+    return { error: null, cleanup: cleanupSubscription };
   } catch (error) {
     console.error(`Error setting up realtime for ${tableName}:`, error);
-    return { error };
+    return { error, cleanup: () => {} };
   }
 };
