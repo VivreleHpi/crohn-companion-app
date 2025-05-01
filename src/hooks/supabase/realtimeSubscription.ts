@@ -14,10 +14,21 @@ export const setupRealtimeSubscription = <T>(
     toast?: ReturnType<typeof useToast>['toast'];
   }
 ): (() => void) => {
-  console.log(`Setting up real-time subscription for ${tableName} (user ${userId})`);
+  console.log(`[Realtime] Setting up real-time subscription for ${tableName} (user ${userId})`);
   
-  // Créer une chaîne de filtrage pour RLS
-  const filterString = userId ? `user_id=eq.${userId}` : undefined;
+  // Créer une chaîne de filtrage appropriée basée sur la table
+  let filterString: string;
+  
+  // Pour la table de profils, utiliser id=eq.{userId}
+  if (tableName === 'profiles') {
+    filterString = `id=eq.${userId}`;
+    console.log(`[Realtime] Using filter string for profiles: ${filterString}`);
+  } 
+  // Pour toutes les autres tables, utiliser user_id=eq.{userId}
+  else {
+    filterString = `user_id=eq.${userId}`;
+    console.log(`[Realtime] Using filter string for ${tableName}: ${filterString}`);
+  }
   
   // Créer un nom de canal unique pour chaque utilisateur et table
   const channelName = `realtime:${tableName}:user_${userId}`;
@@ -48,16 +59,20 @@ export const setupRealtimeSubscription = <T>(
               console.log(`[Realtime] Added new ${tableName} item to state`);
             }
           } else if (payload.eventType === 'UPDATE') {
-            setData((currentData) => 
-              currentData.map((item: any) => 
-                item.id === payload.new.id ? payload.new as T : item
-              )
-            );
+            setData((currentData) => {
+              // Pour les profils, comparer avec id
+              const idField = tableName === 'profiles' ? 'id' : 'id';
+              return currentData.map((item: any) => 
+                item[idField] === payload.new[idField] ? payload.new as T : item
+              );
+            });
             console.log(`[Realtime] Updated ${tableName} item in state`);
           } else if (payload.eventType === 'DELETE') {
-            setData((currentData) => 
-              currentData.filter((item: any) => item.id !== payload.old.id)
-            );
+            setData((currentData) => {
+              // Pour les profils, comparer avec id
+              const idField = tableName === 'profiles' ? 'id' : 'id';
+              return currentData.filter((item: any) => item[idField] !== payload.old[idField]);
+            });
             console.log(`[Realtime] Removed ${tableName} item from state`);
           }
         } catch (err) {

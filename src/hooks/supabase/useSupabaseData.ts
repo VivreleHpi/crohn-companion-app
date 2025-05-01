@@ -37,6 +37,7 @@ export const useSupabaseData = <T>(
     const fetchData = async () => {
       try {
         setLoading(true);
+        console.log(`[useSupabaseData] Fetching data from ${tableName} for user ${user.id}`);
         
         // Utilisation de notre fonction pour récupérer les données avec temps réel
         const { error: fetchError, cleanup } = await fetchDataWithRealtime<T>(
@@ -55,7 +56,7 @@ export const useSupabaseData = <T>(
         cleanupFunction = cleanup;
         
       } catch (err: any) {
-        console.error(`Error retrieving data from ${tableName}:`, err);
+        console.error(`[useSupabaseData] Error retrieving data from ${tableName}:`, err);
         setError(err);
         toast({
           title: "Loading error",
@@ -71,6 +72,7 @@ export const useSupabaseData = <T>(
 
     // Nettoyage lors du démontage du composant
     return () => {
+      console.log(`[useSupabaseData] Cleaning up subscriptions for ${tableName}`);
       cleanupFunction();
     };
   }, [tableName, options, user, toast]);
