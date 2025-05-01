@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ValidTableName } from './useSupabaseData';
 import { setupRealtimeSubscription } from './realtimeSubscription';
@@ -7,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 // Function to add data with proper typing
 export const addData = async <T extends object>(
   tableName: ValidTableName, 
-  data: Partial<T> & { user_id?: string }
+  data: Partial<T> & { user_id?: string; id?: string }
 ): Promise<{ data: any; error: any }> => {
   try {
     let dataWithUserId = { ...data };
@@ -64,7 +63,7 @@ export const addData = async <T extends object>(
 export const updateData = async <T extends object>(
   tableName: ValidTableName,
   id: string,
-  data: Partial<T>
+  data: Partial<T> & { user_id?: string }
 ): Promise<{ data: any; error: any }> => {
   try {
     console.log(`[Supabase] Updating data in ${tableName} with id ${id}:`, data);
