@@ -51,7 +51,7 @@ export const useProfile = () => {
             user_id: user.id, // For RLS policy consistency
           };
           
-          const { data: createdProfile, error: createError } = await addData<ProfileInsert>('profiles', newProfile);
+          const { data: createdProfile, error: createError } = await addData('profiles', newProfile);
               
           if (createError) {
             throw createError;
@@ -118,7 +118,7 @@ export const useProfile = () => {
         user_id: user.id
       };
       
-      const { data, error } = await updateData<Profile>('profiles', user.id, dataToUpdate);
+      const { data, error } = await updateData('profiles', user.id, dataToUpdate);
 
       if (error) {
         throw error;

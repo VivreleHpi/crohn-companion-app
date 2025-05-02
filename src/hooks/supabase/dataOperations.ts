@@ -28,9 +28,9 @@ type TableRowTypes = {
 /**
  * Add data to a Supabase table with proper typing and user_id handling
  */
-export const addData = async <T extends SupabaseItem>(
+export const addData = async <T extends object>(
   tableName: ValidTableName, 
-  data: T & Partial<TableRowTypes[typeof tableName]>
+  data: T & { user_id?: string; id?: string }
 ): Promise<{ data: any; error: any }> => {
   try {
     // Clone the data to avoid modifying the original
@@ -59,7 +59,7 @@ export const addData = async <T extends SupabaseItem>(
     
     const { data: result, error } = await supabase
       .from(tableName)
-      .insert(dataToInsert)
+      .insert(dataToInsert as any)
       .select();
     
     if (error) {
@@ -78,10 +78,10 @@ export const addData = async <T extends SupabaseItem>(
 /**
  * Update data in a Supabase table with proper typing
  */
-export const updateData = async <T extends SupabaseItem>(
+export const updateData = async <T extends object>(
   tableName: ValidTableName,
   id: string,
-  data: Partial<T & TableRowTypes[typeof tableName]>
+  data: Partial<T> & { user_id?: string }
 ): Promise<{ data: any; error: any }> => {
   try {
     // Clone the data to avoid modifying the original
@@ -99,7 +99,7 @@ export const updateData = async <T extends SupabaseItem>(
     
     const { data: result, error } = await supabase
       .from(tableName)
-      .update(dataToUpdate)
+      .update(dataToUpdate as any)
       .eq('id', id)
       .select();
     
