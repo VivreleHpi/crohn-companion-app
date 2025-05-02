@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { ValidTableName } from './useSupabaseData';
 import { useToast } from '@/hooks/use-toast';
+import { Database } from '@/integrations/supabase/types';
 
 /**
  * Generic type for Supabase operations that ensures proper typing
@@ -14,11 +15,22 @@ export type SupabaseItem = {
 };
 
 /**
+ * Type helper that maps table names to their row types
+ */
+type TableRowTypes = {
+  'medication_schedule': Database['public']['Tables']['medication_schedule']['Insert'];
+  'medications': Database['public']['Tables']['medications']['Insert'];
+  'profiles': Database['public']['Tables']['profiles']['Insert'];
+  'stools': Database['public']['Tables']['stools']['Insert'];
+  'symptoms': Database['public']['Tables']['symptoms']['Insert'];
+};
+
+/**
  * Add data to a Supabase table with proper typing and user_id handling
  */
 export const addData = async <T extends SupabaseItem>(
   tableName: ValidTableName, 
-  data: T
+  data: T & Partial<TableRowTypes[typeof tableName]>
 ): Promise<{ data: any; error: any }> => {
   try {
     // Clone the data to avoid modifying the original
@@ -69,7 +81,7 @@ export const addData = async <T extends SupabaseItem>(
 export const updateData = async <T extends SupabaseItem>(
   tableName: ValidTableName,
   id: string,
-  data: Partial<T>
+  data: Partial<T & TableRowTypes[typeof tableName]>
 ): Promise<{ data: any; error: any }> => {
   try {
     // Clone the data to avoid modifying the original

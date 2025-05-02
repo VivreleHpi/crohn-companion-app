@@ -7,6 +7,7 @@ import { Database } from '@/integrations/supabase/types';
 import { addData, updateData } from './supabase';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
+type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
 
 export const useProfile = () => {
   const { user } = useAuth();
@@ -41,7 +42,7 @@ export const useProfile = () => {
           setProfile(data);
         } else {
           console.log('[useProfile] Profile not found, creating new profile');
-          const newProfile = {
+          const newProfile: ProfileInsert = {
             id: user.id,
             email: user.email,
             full_name: user.user_metadata?.full_name || '',
@@ -50,7 +51,7 @@ export const useProfile = () => {
             user_id: user.id, // For RLS policy consistency
           };
           
-          const { data: createdProfile, error: createError } = await addData<Profile>('profiles', newProfile);
+          const { data: createdProfile, error: createError } = await addData<ProfileInsert>('profiles', newProfile);
               
           if (createError) {
             throw createError;
