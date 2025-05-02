@@ -3,7 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { ValidTableName } from './useSupabaseData';
 import { useToast } from '@/hooks/use-toast';
 
-// Function for setting up real-time subscription
+/**
+ * Sets up a realtime subscription to a Supabase table
+ */
 export const setupRealtimeSubscription = <T>(
   tableName: ValidTableName,
   userId: string,
@@ -14,30 +16,20 @@ export const setupRealtimeSubscription = <T>(
     toast?: ReturnType<typeof useToast>['toast'];
   }
 ): (() => void) => {
-  console.log(`[Realtime] Setting up real-time subscription for ${tableName} (user ${userId})`);
+  console.log(`[Realtime] Setting up subscription for ${tableName} (user ${userId})`);
   
-  // Créer une chaîne de filtrage appropriée basée sur la table
-  let filterString: string;
+  // Determine the correct filter field based on table
+  const filterField = tableName === 'profiles' ? 'id' : 'user_id';
+  const filterString = `${filterField}=eq.${userId}`;
   
-  // Pour la table de profils, utiliser id=eq.{userId}
-  if (tableName === 'profiles') {
-    filterString = `id=eq.${userId}`;
-    console.log(`[Realtime] Using filter string for profiles: ${filterString}`);
-  } 
-  // Pour toutes les autres tables, utiliser user_id=eq.{userId}
-  else {
-    filterString = `user_id=eq.${userId}`;
-    console.log(`[Realtime] Using filter string for ${tableName}: ${filterString}`);
-  }
-  
-  // Créer un nom de canal unique pour chaque utilisateur et table
+  // Create unique channel name
   const channelName = `realtime:${tableName}:user_${userId}`;
   
   try {
     const channel = supabase
       .channel(channelName)
       .on('postgres_changes', {
-        event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+        event: '*', // Listen to all events
         schema: 'public',
         table: tableName,
         filter: filterString
@@ -45,35 +37,33 @@ export const setupRealtimeSubscription = <T>(
         console.log(`[Realtime] Change received for ${tableName}:`, payload);
         
         try {
-          // Handle the different event types
-          if (payload.eventType === 'INSERT') {
-            // Check if we need to apply additional filters
-            let shouldAdd = true;
-            if (options?.column && options?.value !== undefined && 
-                payload.new && payload.new[options.column] !== options.value) {
-              shouldAdd = false;
+          switch (payload.eventType) {
+            case 'INSERT': {
+              // Apply additional filtering if needed
+              if (shouldIncludeItem(payload.new, options)) {
+                setData((currentData) => [...currentData, payload.new as T]);
+                console.log(`[Realtime] Added new ${tableName} item to state`);
+              }
+              break;
             }
             
-            if (shouldAdd) {
-              setData((currentData) => [...currentData, payload.new as T]);
-              console.log(`[Realtime] Added new ${tableName} item to state`);
+            case 'UPDATE': {
+              setData((currentData) => {
+                return currentData.map((item: any) => 
+                  item.id === payload.new.id ? payload.new as T : item
+                );
+              });
+              console.log(`[Realtime] Updated ${tableName} item in state`);
+              break;
             }
-          } else if (payload.eventType === 'UPDATE') {
-            setData((currentData) => {
-              // Pour les profils, comparer avec id
-              const idField = tableName === 'profiles' ? 'id' : 'id';
-              return currentData.map((item: any) => 
-                item[idField] === payload.new[idField] ? payload.new as T : item
-              );
-            });
-            console.log(`[Realtime] Updated ${tableName} item in state`);
-          } else if (payload.eventType === 'DELETE') {
-            setData((currentData) => {
-              // Pour les profils, comparer avec id
-              const idField = tableName === 'profiles' ? 'id' : 'id';
-              return currentData.filter((item: any) => item[idField] !== payload.old[idField]);
-            });
-            console.log(`[Realtime] Removed ${tableName} item from state`);
+            
+            case 'DELETE': {
+              setData((currentData) => {
+                return currentData.filter((item: any) => item.id !== payload.old.id);
+              });
+              console.log(`[Realtime] Removed ${tableName} item from state`);
+              break;
+            }
           }
         } catch (err) {
           console.error(`[Realtime] Error handling ${tableName} realtime data:`, err);
@@ -114,3 +104,14 @@ export const setupRealtimeSubscription = <T>(
     return () => {}; // Return empty cleanup function
   }
 };
+
+/**
+ * Helper function to determine if an item should be included based on filter options
+ */
+function shouldIncludeItem(item: any, options?: { column?: string; value?: any }): boolean {
+  if (!options || !options.column || options.value === undefined) {
+    return true;
+  }
+  
+  return item[options.column] === options.value;
+}

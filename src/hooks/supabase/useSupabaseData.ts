@@ -1,14 +1,15 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { fetchDataWithRealtime } from './dataOperations';
+import { fetchDataWithRealtime } from './fetchDataWithRealtime';
 
-// Create a union type of all allowed table names as string literals for strict type checking
+// Create a union type of all allowed table names
 export type ValidTableName = 'medication_schedule' | 'medications' | 'profiles' | 'stools' | 'symptoms';
 
-// Generic hook for fetching data from Supabase
+/**
+ * Generic hook for fetching data from Supabase with realtime updates
+ */
 export const useSupabaseData = <T>(
   tableName: ValidTableName,
   options?: {
@@ -39,7 +40,6 @@ export const useSupabaseData = <T>(
         setLoading(true);
         console.log(`[useSupabaseData] Fetching data from ${tableName} for user ${user.id}`);
         
-        // Utilisation de notre fonction pour récupérer les données avec temps réel
         const { error: fetchError, cleanup } = await fetchDataWithRealtime<T>(
           tableName,
           user.id,
@@ -52,15 +52,13 @@ export const useSupabaseData = <T>(
         
         if (fetchError) throw fetchError;
         
-        // Stocker la fonction de nettoyage pour l'utiliser lors du démontage du composant
         cleanupFunction = cleanup;
-        
       } catch (err: any) {
         console.error(`[useSupabaseData] Error retrieving data from ${tableName}:`, err);
         setError(err);
         toast({
-          title: "Loading error",
-          description: `Unable to retrieve data from ${tableName}`,
+          title: "Erreur de chargement",
+          description: `Impossible de récupérer les données de ${tableName}`,
           variant: "destructive",
         });
       } finally {
@@ -70,7 +68,7 @@ export const useSupabaseData = <T>(
 
     fetchData();
 
-    // Nettoyage lors du démontage du composant
+    // Cleanup on component unmount
     return () => {
       console.log(`[useSupabaseData] Cleaning up subscriptions for ${tableName}`);
       cleanupFunction();

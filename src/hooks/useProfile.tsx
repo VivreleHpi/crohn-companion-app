@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
 import { Database } from '@/integrations/supabase/types';
+import { addData, updateData } from './supabase';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -29,53 +30,42 @@ export const useProfile = () => {
           .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (error) {
-          console.error('[useProfile] Erreur lors de la récupération du profil:', error);
-          
-          // Si le profil n'existe pas, on le crée automatiquement
-          if (error.code === 'PGRST116') {
-            console.log('[useProfile] Profil non trouvé, création automatique...');
-            const newProfile = {
-              id: user.id,
-              email: user.email,
-              full_name: user.user_metadata?.full_name || '',
-              phone_number: '',
-              medical_info: '',
-              user_id: user.id, // Ajout du user_id pour assurer la cohérence avec les RLS policies
-            };
-            
-            const { data: createdProfile, error: createError } = await supabase
-              .from('profiles')
-              .insert(newProfile)
-              .select()
-              .single();
-              
-            if (createError) {
-              console.error('[useProfile] Erreur lors de la création du profil:', createError);
-              toast({
-                title: "Erreur de profil",
-                description: "Impossible de créer votre profil automatiquement",
-                variant: "destructive",
-              });
-            } else if (createdProfile) {
-              console.log('[useProfile] Profil créé avec succès:', createdProfile);
-              setProfile(createdProfile);
-            }
-          } else {
-            toast({
-              title: "Erreur de profil",
-              description: "Impossible de récupérer vos informations de profil",
-              variant: "destructive",
-            });
-          }
-        } else if (data) {
-          console.log('[useProfile] Profil récupéré avec succès:', data);
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
+
+        if (data) {
+          console.log('[useProfile] Profile found:', data);
           setProfile(data);
+        } else {
+          console.log('[useProfile] Profile not found, creating new profile');
+          const newProfile = {
+            id: user.id,
+            email: user.email,
+            full_name: user.user_metadata?.full_name || '',
+            phone_number: '',
+            medical_info: '',
+            user_id: user.id, // For RLS policy consistency
+          };
+          
+          const { data: createdProfile, error: createError } = await addData<Profile>('profiles', newProfile);
+              
+          if (createError) {
+            throw createError;
+          } else if (createdProfile?.[0]) {
+            console.log('[useProfile] Profile created successfully:', createdProfile[0]);
+            setProfile(createdProfile[0]);
+          }
         }
       } catch (error: any) {
-        console.error('[useProfile] Erreur générale:', error);
+        console.error('[useProfile] Error:', error);
+        toast({
+          title: "Erreur de profil",
+          description: "Impossible de récupérer vos informations de profil",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
@@ -83,8 +73,7 @@ export const useProfile = () => {
 
     fetchProfile();
 
-    // Configuration de l'écoute en temps réel pour les modifications de profil
-    console.log('[useProfile] Configuration de l\'écoute en temps réel pour les profils');
+    // Setup realtime subscription for profile changes
     const channel = supabase
       .channel(`public:profiles:id=eq.${user?.id}`)
       .on('postgres_changes', {
@@ -93,18 +82,17 @@ export const useProfile = () => {
         table: 'profiles',
         filter: `id=eq.${user?.id}`
       }, (payload) => {
-        console.log('[useProfile] Changement détecté sur le profil:', payload);
+        console.log('[useProfile] Profile change detected:', payload);
         if (payload.eventType === 'UPDATE' && payload.new) {
-          console.log('[useProfile] Mise à jour du state avec les nouvelles données:', payload.new);
           setProfile(payload.new as Profile);
         }
       })
       .subscribe((status) => {
-        console.log('[useProfile] État de l\'abonnement temps réel pour les profils:', status);
+        console.log('[useProfile] Realtime subscription status:', status);
       });
 
     return () => {
-      console.log('[useProfile] Nettoyage de l\'abonnement temps réel pour les profils');
+      console.log('[useProfile] Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [user, toast]);
@@ -121,36 +109,23 @@ export const useProfile = () => {
 
     try {
       setLoading(true);
-      console.log('[useProfile] Mise à jour du profil pour l\'utilisateur:', user.id);
-      console.log('[useProfile] Données à mettre à jour:', profileData);
+      console.log('[useProfile] Updating profile for user:', user.id);
       
-      // Assurons-nous que user_id est correctement défini si nécessaire
+      // Ensure user_id is set for RLS
       const dataToUpdate = {
         ...profileData,
-        user_id: user.id // Ajout du user_id pour assurer la cohérence avec les RLS policies
+        user_id: user.id
       };
       
-      const { error } = await supabase
-        .from('profiles')
-        .update(dataToUpdate)
-        .eq('id', user.id);
+      const { data, error } = await updateData<Profile>('profiles', user.id, dataToUpdate);
 
       if (error) {
         throw error;
       }
-
-      // Récupérer les données mises à jour
-      const { data: updatedProfile, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-        
-      if (fetchError) {
-        console.error('[useProfile] Erreur lors de la récupération du profil mis à jour:', fetchError);
-      } else if (updatedProfile) {
-        console.log('[useProfile] Profil mis à jour récupéré:', updatedProfile);
-        setProfile(updatedProfile);
+      
+      if (data?.[0]) {
+        console.log('[useProfile] Profile updated:', data[0]);
+        setProfile(data[0]);
       }
       
       toast({
@@ -160,7 +135,7 @@ export const useProfile = () => {
       
       return true;
     } catch (error: any) {
-      console.error('[useProfile] Erreur lors de la mise à jour du profil:', error);
+      console.error('[useProfile] Profile update error:', error);
       toast({
         title: "Erreur",
         description: error.message || "Une erreur s'est produite lors de la mise à jour du profil",
