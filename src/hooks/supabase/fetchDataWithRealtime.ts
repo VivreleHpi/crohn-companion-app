@@ -1,5 +1,5 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { ValidTableName } from './useSupabaseData';
 import { setupRealtimeSubscription } from './realtimeSubscription';
 import { useToast } from '@/hooks/use-toast';

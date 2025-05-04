@@ -1,13 +1,21 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useToast } from './use-toast';
-import { Database } from '@/integrations/supabase/types';
-import { addData, updateData } from './supabase';
+import { addData, updateData } from './supabase/dataOperations';
 
-type Profile = Database['public']['Tables']['profiles']['Row'];
-type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
+// Define Profile type based on the database schema
+export interface Profile {
+  id: string;
+  created_at?: string;
+  updated_at?: string;
+  user_id?: string;
+  medical_info?: string;
+  full_name?: string;
+  email?: string;
+  phone_number?: string;
+}
 
 export const useProfile = () => {
   const { user } = useAuth();

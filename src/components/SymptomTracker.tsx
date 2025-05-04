@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -32,13 +31,13 @@ const severityLevels = [
 // Interface pour les données de symptômes
 interface SymptomLog {
   id?: string;
-  symptom: string;
+  symptom?: string;  // Keep for backward compatibility
   severity: number;
   time: string;
   notes: string | null;
   user_id?: string;
   created_at?: string;
-  name?: string; // To accommodate database schema change
+  name: string;  // This is the main field now
 }
 
 const SymptomTracker = () => {
@@ -89,8 +88,7 @@ const SymptomTracker = () => {
     try {
       // Ajouter à Supabase
       const { data, error } = await addData('symptoms', {
-        symptom: symptomToAdd,
-        name: symptomToAdd, // Adding name to accommodate database changes
+        name: symptomToAdd, // Primary field is name per database schema
         severity,
         notes: notes || null,
         time,
@@ -304,7 +302,7 @@ const SymptomTracker = () => {
                       log.severity === 3 ? "bg-health-orange" : "",
                       log.severity === 4 ? "bg-health-red" : "",
                     )}></div>
-                    <h3 className="font-medium">{log.symptom}</h3>
+                    <h3 className="font-medium">{log.name || log.symptom}</h3>
                   </div>
                   <div className="flex items-center space-x-3">
                     <span className="text-sm text-muted-foreground">{formatDateTime(log.time || log.created_at || '')}</span>
