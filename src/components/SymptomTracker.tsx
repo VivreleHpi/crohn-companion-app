@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Plus, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -37,6 +38,7 @@ interface SymptomLog {
   notes: string | null;
   user_id?: string;
   created_at?: string;
+  name?: string; // To accommodate database schema change
 }
 
 const SymptomTracker = () => {
@@ -86,8 +88,9 @@ const SymptomTracker = () => {
     
     try {
       // Ajouter à Supabase
-      const { data, error } = await addData<SymptomLog>('symptoms', {
+      const { data, error } = await addData('symptoms', {
         symptom: symptomToAdd,
+        name: symptomToAdd, // Adding name to accommodate database changes
         severity,
         notes: notes || null,
         time,

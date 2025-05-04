@@ -1,5 +1,5 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { ValidTableName } from './useSupabaseData';
 import { Database } from '@/integrations/supabase/types';
 

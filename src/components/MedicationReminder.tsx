@@ -77,7 +77,7 @@ const MedicationReminder = () => {
     
     try {
       // Ajouter le médicament à Supabase
-      const { data: medicationData, error: medError } = await addData<Medication>('medications', {
+      const { data: medicationData, error: medError } = await addData('medications', {
         name,
         dosage,
         frequency: `${frequency} fois par jour`,
@@ -94,7 +94,7 @@ const MedicationReminder = () => {
         
         // Créer les entrées de calendrier pour le médicament
         const schedulePromises = times.map(async (time) => {
-          return addData<MedicationSchedule>('medication_schedule', {
+          return addData('medication_schedule', {
             medication_id: medId!,
             time,
             taken: false,
@@ -157,7 +157,7 @@ const MedicationReminder = () => {
     try {
       const now = new Date();
       
-      const { error } = await updateData<MedicationSchedule>('medication_schedule', scheduleId, {
+      const { error } = await updateData('medication_schedule', scheduleId, {
         taken: true,
         taken_at: now.toISOString()
       });

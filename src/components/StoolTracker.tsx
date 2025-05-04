@@ -101,7 +101,7 @@ const StoolTracker = () => {
       const now = new Date();
       
       // Ajouter à Supabase
-      const { data, error } = await addData<StoolLog>('stools', {
+      const { data, error } = await addData('stools', {
         bristol_type: selectedType,
         has_blood: hasBlood,
         has_mucus: hasMucus,
