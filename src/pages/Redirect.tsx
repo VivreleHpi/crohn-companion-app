@@ -16,8 +16,11 @@ const Redirect = () => {
     // Fonction pour gérer la redirection après authentification
     const handleAuthRedirect = async () => {
       const hash = window.location.hash;
+      const query = window.location.search;
+      
       console.log("Hash détecté dans l'URL:", hash ? "Oui" : "Non");
-      setAuthStatus(hash ? "Traitement du token..." : "Vérification de l'authentification...");
+      console.log("Query params détectés:", query ? "Oui" : "Non");
+      setAuthStatus(hash || query ? "Traitement du token..." : "Vérification de l'authentification...");
       
       // Délai court pour permettre à Supabase de traiter le hash d'authentification
       setTimeout(async () => {

@@ -25,31 +25,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     console.log('Initialisation de l\'authentification Supabase...');
 
-    const getSession = async () => {
-      try {
-        console.log('Récupération de la session...');
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Erreur lors de la récupération de la session:', error);
-          toast({
-            title: "Erreur d'authentification",
-            description: "Impossible de récupérer votre session",
-            variant: "destructive",
-          });
-        } else {
-          console.log('Session récupérée:', data.session ? 'Session active' : 'Pas de session');
-          setSession(data.session);
-          setUser(data.session?.user ?? null);
-        }
-      } catch (err) {
-        console.error("Erreur lors de la connexion à Supabase:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Configurer l'écouteur d'événements d'authentification AVANT de vérifier la session
+    // Set up the auth state listener FIRST
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log('Événement d\'authentification:', event);
@@ -79,7 +55,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    // Ensuite, vérifier la session existante
+    // THEN check for existing session
+    const getSession = async () => {
+      try {
+        console.log('Récupération de la session...');
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Erreur lors de la récupération de la session:', error);
+          toast({
+            title: "Erreur d'authentification",
+            description: "Impossible de récupérer votre session",
+            variant: "destructive",
+          });
+        } else {
+          console.log('Session récupérée:', data.session ? 'Session active' : 'Pas de session');
+          setSession(data.session);
+          setUser(data.session?.user ?? null);
+        }
+      } catch (err) {
+        console.error("Erreur lors de la connexion à Supabase:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     getSession();
 
     return () => {

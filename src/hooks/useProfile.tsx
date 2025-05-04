@@ -42,7 +42,7 @@ export const useProfile = () => {
           setProfile(data);
         } else {
           console.log('[useProfile] Profile not found, creating new profile');
-          const newProfile: ProfileInsert = {
+          const newProfile = {
             id: user.id,
             email: user.email,
             full_name: user.user_metadata?.full_name || '',

@@ -1,7 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { ValidTableName } from './useSupabaseData';
-import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
 
 /**
@@ -15,22 +14,11 @@ export type SupabaseItem = {
 };
 
 /**
- * Type helper that maps table names to their row types
- */
-type TableRowTypes = {
-  'medication_schedule': Database['public']['Tables']['medication_schedule']['Insert'];
-  'medications': Database['public']['Tables']['medications']['Insert'];
-  'profiles': Database['public']['Tables']['profiles']['Insert'];
-  'stools': Database['public']['Tables']['stools']['Insert'];
-  'symptoms': Database['public']['Tables']['symptoms']['Insert'];
-};
-
-/**
  * Add data to a Supabase table with proper typing and user_id handling
  */
-export const addData = async <T extends object>(
+export const addData = async (
   tableName: ValidTableName, 
-  data: T & { user_id?: string; id?: string }
+  data: Record<string, any>
 ): Promise<{ data: any; error: any }> => {
   try {
     // Clone the data to avoid modifying the original
@@ -59,7 +47,7 @@ export const addData = async <T extends object>(
     
     const { data: result, error } = await supabase
       .from(tableName)
-      .insert(dataToInsert as any)
+      .insert(dataToInsert)
       .select();
     
     if (error) {
@@ -78,10 +66,10 @@ export const addData = async <T extends object>(
 /**
  * Update data in a Supabase table with proper typing
  */
-export const updateData = async <T extends object>(
+export const updateData = async (
   tableName: ValidTableName,
   id: string,
-  data: Partial<T> & { user_id?: string }
+  data: Record<string, any>
 ): Promise<{ data: any; error: any }> => {
   try {
     // Clone the data to avoid modifying the original
@@ -99,7 +87,7 @@ export const updateData = async <T extends object>(
     
     const { data: result, error } = await supabase
       .from(tableName)
-      .update(dataToUpdate as any)
+      .update(dataToUpdate)
       .eq('id', id)
       .select();
     
